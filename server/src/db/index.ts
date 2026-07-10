@@ -25,6 +25,27 @@ CREATE TABLE IF NOT EXISTS sessions (
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_expires ON sessions(expires_at);
+CREATE TABLE IF NOT EXISTS file_meta (
+  path TEXT PRIMARY KEY,
+  uploader_id TEXT NOT NULL,
+  uploaded_at INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS activity_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  path TEXT NOT NULL,
+  actor_id TEXT NOT NULL,
+  action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore')),
+  detail_json TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_activity_path ON activity_log(path);
+CREATE TABLE IF NOT EXISTS trash (
+  id TEXT PRIMARY KEY,
+  original_path TEXT NOT NULL,
+  is_dir INTEGER NOT NULL,
+  deleted_by TEXT NOT NULL,
+  deleted_at INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS folder_acl (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   path_prefix TEXT NOT NULL,

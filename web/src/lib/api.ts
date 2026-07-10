@@ -28,6 +28,14 @@ export async function api<T>(url: string, init?: RequestInit): Promise<T> {
   return (await res.json()) as T
 }
 
+export function apiJson<T>(url: string, method: string, body: unknown): Promise<T> {
+  return api<T>(url, {
+    method,
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
 export function downloadUrl(path: string): string {
   return `/api/fs/download?path=${encodeURIComponent(path)}`
 }

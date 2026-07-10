@@ -13,6 +13,8 @@ export interface FsEntry {
   /** epoch ms */
   mtime: number
   permission: Exclude<Permission, 'none'>
+  /** 업로더 표시명 (file_meta 기록이 있는 파일만) */
+  uploader: string | null
 }
 
 export interface ListResponse {
@@ -43,4 +45,76 @@ export interface MeResponse {
 
 export interface ApiErrorBody {
   error: { code: string; message: string }
+}
+
+// ─── 쓰기 작업 (M2) ─────────────────────────────────────────
+
+export type ActivityAction = 'upload' | 'mkdir' | 'rename' | 'move' | 'copy' | 'trash' | 'restore'
+
+export interface UploadResponse {
+  /** 실제 저장된 경로 (이름 충돌 시 " (1)" 붙은 최종본) */
+  path: string
+  name: string
+}
+
+export interface MkdirBody {
+  /** 부모 폴더 경로 */
+  path: string
+  name: string
+}
+
+export interface MkdirResponse {
+  path: string
+}
+
+export interface RenameBody {
+  path: string
+  newName: string
+}
+
+export interface RenameResponse {
+  path: string
+}
+
+export interface MoveBody {
+  paths: string[]
+  destDir: string
+}
+
+export interface CopyBody {
+  paths: string[]
+  destDir: string
+}
+
+export interface TrashBody {
+  paths: string[]
+}
+
+export interface RestoreBody {
+  trashIds: string[]
+}
+
+/** move/copy/trash/restore 공통 — 항목별 성공/실패 */
+export interface BatchResult {
+  path: string
+  ok: boolean
+  error?: string
+  newPath?: string
+}
+
+export interface BatchResponse {
+  results: BatchResult[]
+}
+
+export interface TrashItem {
+  id: string
+  originalPath: string
+  name: string
+  isDir: boolean
+  deletedByName: string
+  deletedAt: number
+}
+
+export interface TrashListResponse {
+  items: TrashItem[]
 }

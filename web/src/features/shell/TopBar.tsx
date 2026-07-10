@@ -6,8 +6,16 @@ import { IconFolder, IconLogout, IconSearch } from '../../components/icons'
 import { api } from '../../lib/api'
 import { browseTo } from '../../lib/paths'
 
-/** UI 명세 §02-B — GNB: breadcrumb · 검색 · 유저 프로필 */
-export default function TopBar({ path, me }: { path: string; me: MeResponse }) {
+/** UI 명세 §02-B — GNB: breadcrumb · 검색 · 유저 프로필. title이 있으면 breadcrumb 대신 표시 */
+export default function TopBar({
+  path,
+  me,
+  title,
+}: {
+  path: string
+  me: MeResponse
+  title?: string
+}) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -33,17 +41,23 @@ export default function TopBar({ path, me }: { path: string; me: MeResponse }) {
       </div>
 
       <nav className="bc" aria-label="현재 경로">
-        <Link to={browseTo('/')}>전체</Link>
-        {crumbs.map((c, i) => (
-          <Fragment key={c.rel}>
-            <span className="car">›</span>
-            {i === crumbs.length - 1 ? (
-              <b>{c.name}</b>
-            ) : (
-              <Link to={browseTo(c.rel)}>{c.name}</Link>
-            )}
-          </Fragment>
-        ))}
+        {title ? (
+          <b>{title}</b>
+        ) : (
+          <>
+            <Link to={browseTo('/')}>전체</Link>
+            {crumbs.map((c, i) => (
+              <Fragment key={c.rel}>
+                <span className="car">›</span>
+                {i === crumbs.length - 1 ? (
+                  <b>{c.name}</b>
+                ) : (
+                  <Link to={browseTo(c.rel)}>{c.name}</Link>
+                )}
+              </Fragment>
+            ))}
+          </>
+        )}
       </nav>
 
       <span className="spacer" />

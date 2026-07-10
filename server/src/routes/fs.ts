@@ -5,6 +5,7 @@ import type { FsEntry, ListResponse, TreeNode, TreeResponse } from '@fs/shared'
 import { config } from '../config'
 import { canSee, resolvePermission } from '../acl/resolve'
 import { loadAclRules } from '../acl/store'
+import { uploaderNamesFor } from '../fs/meta'
 import { PathError, resolveAbs, toRelPath } from '../fs/safe-path'
 import { errorBody } from '../types'
 
@@ -45,8 +46,12 @@ export default async function fsRoutes(app: FastifyInstance) {
         mtime: Math.round(cStat.mtimeMs),
         // 경유 통로(none인데 하위 grant로 보이는 폴더)는 read로 표기
         permission: perm === 'none' ? 'read' : perm,
+        uploader: null,
       })
     }
+    // file_meta에서 업로더 표시명 연결
+    const uploaders = uploaderNamesFor(entries.map((e) => e.path))
+    for (const e of entries) e.uploader = uploaders.get(e.path) ?? null
     entries.sort((a, b) => Number(b.isDir) - Number(a.isDir) || a.name.localeCompare(b.name, 'ko'))
     const res: ListResponse = { path: rel, permission: resolvePermission(user, rel, rules), entries }
     return res

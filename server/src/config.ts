@@ -30,6 +30,9 @@ export const config = {
   baseUrl: (env.BASE_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
   sessionSecret: env.SESSION_SECRET ?? 'dev-only-insecure-secret',
   storageRoot: path.resolve(env.STORAGE_ROOT ?? './data/storage'),
+  /** 업로드 스테이징 — storage와 같은 볼륨이라 rename이 원자적 */
+  tmpDir: path.resolve(env.STORAGE_ROOT ?? './data/storage', '.tmp'),
+  trashDir: path.resolve(env.STORAGE_ROOT ?? './data/storage', '.trash'),
   databasePath: path.resolve(env.DATABASE_PATH ?? './data/app.db'),
   maxUploadMb: Number(env.MAX_UPLOAD_MB ?? 2048),
   discord,
@@ -42,4 +45,6 @@ export const config = {
 }
 
 fs.mkdirSync(config.storageRoot, { recursive: true })
+fs.mkdirSync(config.tmpDir, { recursive: true })
+fs.mkdirSync(config.trashDir, { recursive: true })
 fs.mkdirSync(path.dirname(config.databasePath), { recursive: true })

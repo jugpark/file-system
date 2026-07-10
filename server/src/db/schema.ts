@@ -19,6 +19,33 @@ export const sessions = sqliteTable('sessions', {
   createdAt: integer('created_at').notNull(),
 })
 
+export const fileMeta = sqliteTable('file_meta', {
+  /** 스토리지 루트 기준 상대 경로 */
+  path: text('path').primaryKey(),
+  uploaderId: text('uploader_id').notNull(),
+  uploadedAt: integer('uploaded_at').notNull(),
+})
+
+export const activityLog = sqliteTable('activity_log', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  path: text('path').notNull(),
+  actorId: text('actor_id').notNull(),
+  action: text('action', {
+    enum: ['upload', 'mkdir', 'rename', 'move', 'copy', 'trash', 'restore'],
+  }).notNull(),
+  detailJson: text('detail_json'),
+  createdAt: integer('created_at').notNull(),
+})
+
+export const trash = sqliteTable('trash', {
+  /** 실체는 .trash/{id} 에 저장 */
+  id: text('id').primaryKey(),
+  originalPath: text('original_path').notNull(),
+  isDir: integer('is_dir', { mode: 'boolean' }).notNull(),
+  deletedBy: text('deleted_by').notNull(),
+  deletedAt: integer('deleted_at').notNull(),
+})
+
 export const folderAcl = sqliteTable('folder_acl', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   /** '/design' 형태의 정규화 경로 prefix */

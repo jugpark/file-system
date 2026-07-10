@@ -3,7 +3,9 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import LoginPage from '../features/auth/LoginPage'
 import { useMe } from '../features/auth/useMe'
+import { OverlaysProvider } from '../features/overlays/Overlays'
 import Shell from '../features/shell/Shell'
+import TrashPage from '../features/trash/TrashPage'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } },
@@ -40,18 +42,28 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/browse/*"
-            element={
-              <RequireAuth>
-                <Shell />
-              </RequireAuth>
-            }
-          />
-          <Route path="*" element={<HomeRedirect />} />
-        </Routes>
+        <OverlaysProvider>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/browse/*"
+              element={
+                <RequireAuth>
+                  <Shell />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/trash"
+              element={
+                <RequireAuth>
+                  <TrashPage />
+                </RequireAuth>
+              }
+            />
+            <Route path="*" element={<HomeRedirect />} />
+          </Routes>
+        </OverlaysProvider>
       </BrowserRouter>
     </QueryClientProvider>
   )

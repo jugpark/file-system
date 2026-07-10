@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import Fastify from 'fastify'
 import fastifyCookie from '@fastify/cookie'
+import fastifyMultipart from '@fastify/multipart'
 import fastifyStatic from '@fastify/static'
 import { ROLE_CACHE_TTL_MS, ROLE_STALE_MAX_MS, SESSION_COOKIE } from '@fs/shared'
 import { config } from './config'
@@ -10,6 +11,7 @@ import { deleteSession, getSessionWithUser, updateSessionRoles } from './auth/se
 import { PathError } from './fs/safe-path'
 import authRoutes from './routes/auth'
 import fsRoutes from './routes/fs'
+import fsWriteRoutes from './routes/fs-write'
 import healthRoutes from './routes/health'
 import meRoutes from './routes/me'
 import { errorBody } from './types'
@@ -17,8 +19,16 @@ import { errorBody } from './types'
 const app = Fastify({ logger: true })
 
 await app.register(fastifyCookie, { secret: config.sessionSecret })
+await app.register(fastifyMultipart, {
+  limits: { fileSize: config.maxUploadMb * 1024 * 1024, files: 1 },
+})
 // 다운로드용 — serve:false, reply.sendFile 데코레이터만 사용 (Range 지원)
 await app.register(fastifyStatic, { root: config.storageRoot, serve: false })
+
+// 중단된 업로드 스테이징 잔여물 청소
+for (const leftover of fs.readdirSync(config.tmpDir)) {
+  fs.rmSync(path.join(config.tmpDir, leftover), { recursive: true, force: true })
+}
 
 app.decorateRequest('user', null)
 
@@ -80,6 +90,7 @@ app.setErrorHandler((err, req, reply) => {
 await app.register(authRoutes)
 await app.register(meRoutes)
 await app.register(fsRoutes)
+await app.register(fsWriteRoutes)
 await app.register(healthRoutes)
 
 // ── SPA 정적 서빙 (프로덕션: web 빌드 결과물이 server/public 에 있음) ──

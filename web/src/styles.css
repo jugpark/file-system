@@ -245,9 +245,80 @@ table.lv .who i{width:18px;height:18px;border-radius:50%;background:linear-gradi
   background:#FCEBEA;border:1px solid rgba(198,65,59,.25);border-radius:8px;padding:9px 12px;
 }
 
-/* 전역 알림 (M2 기능 안내 등) */
-.notice{
-  position:fixed;right:18px;bottom:18px;z-index:120;max-width:340px;
-  background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;
-  font-size:.83rem;box-shadow:0 18px 40px -20px rgba(20,22,29,.5);
+/* ---------- 토스트 스택 (명세 UPLOAD TOAST) ---------- */
+.toasts{
+  position:fixed;right:18px;bottom:18px;z-index:120;
+  display:flex;flex-direction:column;gap:10px;align-items:flex-end;
 }
+.toast{
+  width:340px;max-width:calc(100vw - 36px);background:var(--ink);color:#fff;border-radius:12px;
+  padding:14px 16px;box-shadow:0 18px 40px -20px rgba(20,22,29,.5);
+}
+.toast .th{display:flex;align-items:center;gap:9px;font-size:.85rem;font-weight:600;margin-bottom:10px}
+.toast .th svg{width:16px;height:16px;flex:none}
+.toast .th .fn{margin-left:auto;font-family:var(--mono);font-size:.72rem;color:#B9BEE9;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:55%}
+.toast .bar{height:6px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden}
+.toast .bar i{display:block;height:100%;background:linear-gradient(90deg,#7B84FF,#5865F2);border-radius:999px;transition:width .2s}
+.toast .pc{font-family:var(--mono);font-size:.72rem;color:#B9BEE9;margin-top:8px}
+.toast.err{background:#4A1F1D}
+.toast.err .pc{color:#F0B6B3}
+.toast.notice-toast{padding:12px 16px;font-size:.83rem}
+
+/* ---------- 다이얼로그 ---------- */
+.overlay{position:fixed;inset:0;z-index:110;background:rgba(20,22,29,.42);display:grid;place-items:center;padding:20px}
+.dialog{
+  width:100%;max-width:380px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;padding:22px;box-shadow:0 24px 60px -30px rgba(20,22,29,.45);
+}
+.dialog h5{margin:0 0 14px;font-size:1rem;font-weight:700}
+.dialog p{margin:0 0 14px;font-size:.86rem;color:var(--slate)}
+.dialog .txt{
+  width:100%;box-sizing:border-box;font-family:var(--sans);font-size:.9rem;color:var(--ink);
+  border:1px solid var(--line);border-radius:9px;padding:10px 12px;outline:none;background:var(--surface);
+}
+.dialog .txt:focus{border-color:var(--blurple);box-shadow:0 0 0 3px var(--blurple-soft)}
+.dialog .actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+.btn{
+  all:unset;box-sizing:border-box;cursor:pointer;font-weight:600;font-size:.85rem;
+  padding:9px 15px;border-radius:9px;text-align:center;
+}
+.btn.primary{background:var(--blurple);color:#fff}
+.btn.primary:hover{background:var(--blurple-ink)}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:var(--surface);border:1px solid var(--line);color:var(--slate)}
+.btn.ghost:hover{background:var(--surface-2);color:var(--ink)}
+.btn.danger{background:var(--danger);color:#fff}
+.btn.danger:hover{filter:brightness(.92)}
+
+/* 폴더 선택기 (이동/복사 대상) */
+.picker-bc{display:flex;align-items:center;gap:4px;flex-wrap:wrap;font-family:var(--mono);font-size:.74rem;margin-bottom:10px}
+.picker-bc button{all:unset;cursor:pointer;color:var(--slate);padding:3px 6px;border-radius:5px}
+.picker-bc button:hover{background:var(--surface-2);color:var(--ink)}
+.picker-bc b{color:var(--ink);padding:3px 6px;background:var(--blurple-soft);border-radius:5px}
+.picker-bc .car{color:var(--slate-soft)}
+.picker-list{
+  border:1px solid var(--line);border-radius:9px;max-height:200px;overflow-y:auto;
+  display:flex;flex-direction:column;padding:4px;gap:1px;
+}
+.picker-list button{
+  all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:center;gap:9px;
+  padding:8px 10px;border-radius:7px;font-size:.86rem;color:var(--ink);
+}
+.picker-list button:hover{background:var(--blurple-soft);color:var(--blurple-ink)}
+.picker-list button svg{color:var(--blurple);flex:none}
+.picker-list .empty{padding:16px;text-align:center;font-size:.8rem;color:var(--slate-soft)}
+
+/* 새로 만들기 팝업 (LNB) */
+.new-wrap{position:relative}
+.new-pop{
+  position:absolute;left:0;right:0;top:calc(100% - 10px);z-index:90;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 18px 40px -20px rgba(20,22,29,.35);padding:6px;
+}
+.new-pop button{
+  all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;cursor:pointer;
+  padding:8px 10px;border-radius:8px;font-size:.85rem;color:var(--ink);
+}
+.new-pop button:hover{background:var(--blurple-soft);color:var(--blurple-ink)}
+.new-pop button svg{width:15px;height:15px;color:var(--slate-soft);flex:none}
+.new-pop button:hover svg{color:var(--blurple)}

@@ -1,14 +1,22 @@
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { FsEntry, ListResponse } from '@fs/shared'
 import { IconFile, IconFolder, IconUpload } from '../../components/icons'
 import { ApiError, api, downloadUrl } from '../../lib/api'
 import { formatBytes, formatMtime } from '../../lib/format'
 import { browseTo } from '../../lib/paths'
+import { DeleteDialog, MoveCopyDialog, RenameDialog } from '../actions/dialogs'
+import { useOverlays } from '../overlays/Overlays'
 import ContextMenu, { type MenuState } from './ContextMenu'
 
-/** UI 명세 §02-C — Explorer: 뷰 토글 · 리스트 뷰 · 드래그 앤 드롭 존 */
+type DialogState =
+  | { type: 'rename'; entry: FsEntry }
+  | { type: 'move' | 'copy'; entry: FsEntry }
+  | { type: 'delete'; entry: FsEntry }
+  | null
+
+/** UI 명세 §02-C — Explorer: 뷰 토글 · 리스트 뷰 · 드래그 앤 드롭 업로드 */
 export default function Explorer({
   path,
   selected,
@@ -19,24 +27,29 @@ export default function Explorer({
   onSelect: (e: FsEntry | null) => void
 }) {
   const navigate = useNavigate()
+  const { enqueueUploads, showNotice } = useOverlays()
   const [menu, setMenu] = useState<MenuState | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<DialogState>(null)
   const [dragOver, setDragOver] = useState(false)
 
   const q = useQuery({
     queryKey: ['list', path],
     queryFn: () => api<ListResponse>(`/api/fs/list?path=${encodeURIComponent(path)}`),
   })
-
-  useEffect(() => {
-    if (!notice) return
-    const t = setTimeout(() => setNotice(null), 2500)
-    return () => clearTimeout(t)
-  }, [notice])
+  const writable = q.data?.permission === 'write'
 
   const openEntry = (entry: FsEntry) => {
     if (entry.isDir) navigate(browseTo(entry.path))
     else window.location.href = downloadUrl(entry.path)
+  }
+
+  const handleDrop = (files: File[]) => {
+    if (files.length === 0) return
+    if (!writable) {
+      showNotice('이 폴더에 수정 권한이 없습니다')
+      return
+    }
+    enqueueUploads(files, path)
   }
 
   const body = () => {
@@ -73,7 +86,7 @@ export default function Explorer({
         <div className="state-box">
           <IconFolder />
           <span className="t">비어 있는 폴더</span>
-          <span>파일을 끌어다 놓아 업로드하세요 (M2)</span>
+          {writable && <span>파일을 끌어다 놓아 업로드하세요</span>}
         </div>
       )
     }
@@ -106,8 +119,13 @@ export default function Explorer({
                 </span>
                 {entry.name}
               </td>
-              {/* 마지막 수정자는 DB 메타데이터(M3)에서 연결 */}
-              <td className="hidem mono">—</td>
+              <td className="hidem">
+                {entry.uploader ? (
+                  <span className="who"><i />@{entry.uploader}</span>
+                ) : (
+                  <span className="mono">—</span>
+                )}
+              </td>
               <td className="mono">{formatMtime(entry.mtime)}</td>
               <td className="mono">{entry.isDir ? '—' : formatBytes(entry.size)}</td>
             </tr>
@@ -128,7 +146,7 @@ export default function Explorer({
       onDrop={(ev) => {
         ev.preventDefault()
         setDragOver(false)
-        setNotice('업로드는 M2에서 제공됩니다')
+        handleDrop(Array.from(ev.dataTransfer.files))
       }}
     >
       <div className="m-toolbar">
@@ -141,9 +159,12 @@ export default function Explorer({
 
       {body()}
 
-      <div className={'m-drop' + (dragOver ? ' over' : '')}>
+      <div
+        className={'m-drop' + (dragOver ? ' over' : '')}
+        style={writable ? undefined : { opacity: 0.5 }}
+      >
         <IconUpload />
-        여기로 파일을 끌어다 놓으면 업로드
+        {writable ? '여기로 파일을 끌어다 놓으면 업로드' : '읽기 전용 폴더입니다'}
       </div>
 
       {menu && (
@@ -151,10 +172,27 @@ export default function Explorer({
           state={menu}
           onClose={() => setMenu(null)}
           onOpen={openEntry}
-          onNotice={setNotice}
+          onRename={(entry) => setDialog({ type: 'rename', entry })}
+          onMoveCopy={(entry, mode) => setDialog({ type: mode, entry })}
+          onDelete={(entry) => setDialog({ type: 'delete', entry })}
         />
       )}
-      {notice && <div className="notice">{notice}</div>}
+
+      {dialog?.type === 'rename' && (
+        <RenameDialog entry={dialog.entry} onClose={() => setDialog(null)} />
+      )}
+      {(dialog?.type === 'move' || dialog?.type === 'copy') && (
+        <MoveCopyDialog entry={dialog.entry} mode={dialog.type} onClose={() => setDialog(null)} />
+      )}
+      {dialog?.type === 'delete' && (
+        <DeleteDialog
+          entry={dialog.entry}
+          onClose={() => {
+            setDialog(null)
+            onSelect(null)
+          }}
+        />
+      )}
     </section>
   )
 }
