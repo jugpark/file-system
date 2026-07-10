@@ -1,0 +1,253 @@
+/* ============================================================
+   사내 스토리지 — file-system-ui-spec.html 의 디자인 토큰/컴포넌트를
+   실제 앱 스타일로 이식. 토큰 값은 명세서와 1:1 동일하게 유지한다.
+   ============================================================ */
+:root{
+  --paper:#F1F2F5;
+  --surface:#FFFFFF;
+  --surface-2:#F8F9FB;
+  --ink:#14161D;
+  --slate:#565C6B;
+  --slate-soft:#7C8290;
+  --line:#E3E5EB;
+  --line-soft:#ECEDF1;
+  --blurple:#5865F2;
+  --blurple-ink:#3A45C4;
+  --blurple-soft:#EDEFFE;
+  --grant:#12946C;
+  --grant-soft:#E1F4EC;
+  --lock:#A9772A;
+  --lock-soft:#F6EEDA;
+  --danger:#C6413B;
+  --radius:16px;
+  --radius-sm:10px;
+  --sans:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+
+*{box-sizing:border-box}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important;transition:none !important} }
+
+html,body,#root{height:100%}
+body{
+  margin:0;
+  font-family:var(--sans);
+  background:var(--paper);
+  color:var(--ink);
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility;
+}
+a{color:inherit}
+button{font-family:var(--sans)}
+::selection{background:var(--blurple);color:#fff}
+
+/* ---------- 앱 프레임 (명세 mock-frame의 풀스크린 버전) ---------- */
+.app{height:100%;display:flex;flex-direction:column;background:var(--surface)}
+.app-body{flex:1;display:grid;grid-template-columns:230px minmax(0,1fr) 280px;min-height:0}
+@media (max-width:1024px){ .app-body{grid-template-columns:230px minmax(0,1fr)} .info{display:none} }
+@media (max-width:720px){ .app-body{grid-template-columns:minmax(0,1fr)} .lnb{display:none} }
+
+/* ---------- GNB (mock-top) ---------- */
+.gnb{
+  display:flex;align-items:center;gap:12px;flex:none;
+  padding:10px 16px;border-bottom:1px solid var(--line-soft);
+  background:var(--surface-2);
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:-.01em;flex:none;font-size:.95rem}
+.brand .glyph{
+  width:26px;height:26px;border-radius:8px;flex:none;
+  background:linear-gradient(135deg,var(--blurple),#7B84FF);
+  display:grid;place-items:center;color:#fff;
+}
+
+/* breadcrumb (명세 .crumbs + .bc) */
+.bc{display:flex;align-items:center;gap:4px;font-family:var(--mono);font-size:.8rem;min-width:0;overflow:hidden;white-space:nowrap}
+.bc a{color:var(--slate);text-decoration:none;padding:4px 8px;border-radius:6px}
+.bc a:hover{background:var(--surface);color:var(--ink)}
+.bc b{color:var(--ink);font-weight:600;padding:4px 8px;background:var(--blurple-soft);border-radius:6px;overflow:hidden;text-overflow:ellipsis}
+.bc .car{color:var(--slate-soft)}
+
+.gnb .spacer{flex:1}
+
+.gnb-search{
+  flex:none;display:flex;align-items:center;gap:7px;
+  font-size:.8rem;color:var(--slate-soft);
+  border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface);
+  cursor:not-allowed;
+}
+.gnb-search input{border:none;outline:none;background:transparent;font-family:inherit;font-size:inherit;color:var(--ink);width:130px;cursor:not-allowed}
+@media (max-width:620px){ .gnb-search{display:none} }
+
+.gnb-user{display:flex;align-items:center;gap:9px;flex:none}
+.gnb-user .ava{width:26px;height:26px;border-radius:50%;flex:none;background:linear-gradient(135deg,#5865F2,#9AA2FF);object-fit:cover}
+.gnb-user .name{font-size:.82rem;font-weight:600;color:var(--slate)}
+.btn-logout{
+  all:unset;cursor:pointer;display:grid;place-items:center;
+  width:28px;height:28px;border-radius:7px;color:var(--slate-soft);
+}
+.btn-logout:hover{background:var(--surface);color:var(--danger)}
+
+/* ---------- LNB (명세 m-lnb) ---------- */
+.lnb{border-right:1px solid var(--line-soft);padding:14px 12px;background:var(--surface);overflow-y:auto}
+.m-new{
+  all:unset;box-sizing:border-box;width:100%;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  background:var(--blurple);color:#fff;font-weight:600;font-size:.85rem;
+  border-radius:9px;padding:9px;margin-bottom:16px;cursor:pointer;
+}
+.m-new:disabled,.m-new[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
+.m-nav{display:flex;flex-direction:column;gap:2px;margin-bottom:14px}
+.m-nav a,.m-nav .nav-item{
+  font-size:.85rem;color:var(--slate);padding:7px 9px;border-radius:7px;
+  display:flex;align-items:center;gap:9px;text-decoration:none;cursor:pointer;
+}
+.m-nav a:hover{background:var(--surface-2);color:var(--ink)}
+.m-nav .on{background:var(--blurple-soft);color:var(--blurple-ink);font-weight:600}
+.m-nav .nav-item.disabled{opacity:.45;cursor:not-allowed}
+.m-nav svg{width:15px;height:15px;flex:none}
+
+/* 트리 (명세 m-tree) */
+.m-tree{border-top:1px dashed var(--line);padding-top:12px;font-size:.82rem;color:var(--slate)}
+.m-tree .tree-label{
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--slate-soft);margin:0 0 8px;font-weight:600;
+}
+.tree-row{display:flex;align-items:center;gap:2px;border-radius:6px}
+.tree-row:hover{background:var(--surface-2)}
+.tree-row.on{background:var(--blurple-soft)}
+.tree-row.on .tree-name{color:var(--blurple-ink);font-weight:600}
+.tree-arw{
+  all:unset;cursor:pointer;width:16px;height:22px;flex:none;
+  display:grid;place-items:center;color:var(--slate-soft);font-size:.7rem;
+}
+.tree-arw.leaf{visibility:hidden}
+.tree-name{
+  all:unset;cursor:pointer;flex:1;min-width:0;padding:3px 4px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.tree-children{padding-left:14px}
+
+/* ---------- 메인 뷰 (명세 m-main) ---------- */
+.main{min-width:0;display:flex;flex-direction:column;overflow-y:auto;padding:14px 18px;background:var(--surface)}
+.m-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex:none}
+.toggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:.75rem}
+.toggle button{all:unset;padding:5px 11px;color:var(--slate);cursor:pointer}
+.toggle button.on{background:var(--ink);color:#fff;font-weight:600}
+.toggle button:disabled{cursor:not-allowed;opacity:.55}
+.m-count{font-family:var(--mono);font-size:.74rem;color:var(--slate-soft);margin-left:auto}
+
+/* 리스트 뷰 (명세 table.lv) */
+table.lv{width:100%;border-collapse:collapse;font-size:.88rem}
+table.lv th{text-align:left;font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:var(--slate-soft);font-weight:600;padding:0 12px 12px;border-bottom:1px solid var(--line)}
+table.lv td{padding:10px 12px;border-bottom:1px solid var(--line-soft);color:var(--slate);vertical-align:middle}
+table.lv tbody tr{cursor:default;user-select:none}
+table.lv tbody tr:hover{background:var(--surface-2)}
+table.lv tbody tr.sel{background:var(--blurple-soft);outline:1px solid rgba(88,101,242,.28);outline-offset:-1px}
+table.lv td.nm{color:var(--ink);font-weight:500;max-width:0;width:52%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table.lv td.nm .fic{display:inline-flex;vertical-align:-3px;margin-right:9px;color:var(--slate)}
+table.lv td.nm .fic.f{color:var(--blurple)}
+table.lv td.mono{font-family:var(--mono);font-size:.78rem;color:var(--slate-soft);white-space:nowrap}
+table.lv .who{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+table.lv .who i{width:18px;height:18px;border-radius:50%;background:linear-gradient(135deg,#5865F2,#9AA2FF);display:block;flex:none}
+@media (max-width:900px){ table.lv .hidem{display:none} }
+
+/* 빈 폴더 / 에러 상태 */
+.state-box{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  color:var(--slate-soft);font-size:.9rem;padding:40px 0;text-align:center;
+}
+.state-box svg{width:34px;height:34px;opacity:.5}
+.state-box .t{font-weight:600;color:var(--slate)}
+
+/* 드롭 존 (명세 m-drop) — M1은 시각 요소만, 동작은 M2 */
+.m-drop{
+  margin-top:12px;flex:none;border:1.5px dashed var(--line);border-radius:10px;
+  padding:16px;text-align:center;font-size:.8rem;color:var(--slate-soft);
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:border-color .15s,background .15s;
+}
+.m-drop.over{border-color:var(--blurple);background:var(--blurple-soft);color:var(--blurple-ink)}
+.m-drop svg{width:15px;height:15px}
+
+/* ---------- 정보 패널 (명세 m-info) ---------- */
+.info{border-left:1px solid var(--line-soft);padding:16px 14px;background:var(--surface-2);overflow-y:auto}
+.info .thumb{height:90px;border-radius:9px;background:linear-gradient(135deg,#E9EBF3,#D6DAEA);margin-bottom:12px;display:grid;place-items:center;color:var(--slate-soft)}
+.info .thumb svg{width:26px;height:26px}
+.info h5{margin:0 0 3px;font-size:.95rem;font-weight:700;word-break:break-all}
+.info .sub{font-family:var(--mono);font-size:.72rem;color:var(--slate-soft);margin-bottom:12px}
+.info .kv{font-size:.78rem;color:var(--slate);display:flex;flex-direction:column;gap:6px;margin:14px 0;border-top:1px dashed var(--line);padding-top:12px}
+.info .kv .row{display:flex;gap:8px}
+.info .kv .k{flex:none;width:52px;color:var(--slate-soft)}
+.info .kv .v{font-family:var(--mono);font-size:.72rem;word-break:break-all}
+.info .placeholder{color:var(--slate-soft);font-size:.82rem;text-align:center;padding:46px 8px}
+
+/* 권한 배지 (명세 tag-perm) */
+.tag-perm{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:600;padding:5px 10px;border-radius:999px}
+.tag-perm.ed{background:var(--grant-soft);color:var(--grant)}
+.tag-perm.rd{background:var(--lock-soft);color:var(--lock)}
+.tag-perm svg{width:12px;height:12px}
+
+/* 활동 로그 (명세 m-log) — M3에서 데이터 연결 */
+.m-log{font-size:.76rem;color:var(--slate);display:flex;flex-direction:column;gap:9px;margin-top:14px;border-top:1px dashed var(--line);padding-top:12px}
+.m-log .lg{display:flex;gap:8px}
+.m-log .lg .d{width:7px;height:7px;border-radius:50%;background:var(--blurple);margin-top:5px;flex:none;position:relative}
+.m-log .lg .d::after{content:"";position:absolute;left:3px;top:9px;width:1px;height:16px;background:var(--line)}
+.m-log .lg:last-child .d::after{display:none}
+.m-log .lg b{color:var(--ink);font-weight:600}
+.m-log .lg .tm{font-family:var(--mono);color:var(--slate-soft)}
+.m-log .todo{color:var(--slate-soft)}
+
+/* ---------- 컨텍스트 메뉴 (명세 .ctx) ---------- */
+.ctx{
+  position:fixed;z-index:100;width:210px;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  box-shadow:0 18px 40px -20px rgba(20,22,29,.35);padding:6px;font-size:.86rem;
+}
+.ctx button{
+  all:unset;box-sizing:border-box;width:100%;display:flex;align-items:center;gap:10px;
+  padding:8px 10px;border-radius:8px;color:var(--ink);cursor:pointer;
+}
+.ctx button:hover:not(:disabled),.ctx button:focus-visible{background:var(--blurple-soft);color:var(--blurple-ink);outline:none}
+.ctx button .ci{width:15px;height:15px;color:var(--slate-soft);flex:none}
+.ctx button:hover:not(:disabled) .ci{color:var(--blurple)}
+.ctx button .note{margin-left:auto;font-family:var(--mono);font-size:.66rem;color:var(--slate-soft)}
+.ctx button:hover:not(:disabled) .note{color:var(--blurple)}
+.ctx button:disabled{opacity:.45;cursor:not-allowed}
+.ctx .div{height:1px;background:var(--line-soft);margin:5px 8px}
+.ctx button.del{color:var(--danger)}
+.ctx button.del .ci{color:var(--danger)}
+.ctx button.del:hover:not(:disabled){background:#FCEBEA;color:var(--danger)}
+
+/* ---------- 스켈레톤 (명세 .sk) ---------- */
+.sk{display:flex;flex-direction:column;gap:12px;padding:8px 0}
+.sk .skrow{display:flex;align-items:center;gap:12px}
+.sk .b{border-radius:6px;background:linear-gradient(90deg,#EDEEF2 25%,#F6F7FA 37%,#EDEEF2 63%);background-size:400% 100%;animation:sh 1.4s ease infinite;height:12px}
+.sk .sq{width:26px;height:26px;border-radius:8px;flex:none;background:linear-gradient(90deg,#EDEEF2 25%,#F6F7FA 37%,#EDEEF2 63%);background-size:400% 100%;animation:sh 1.4s ease infinite}
+@keyframes sh{0%{background-position:100% 50%}100%{background-position:0 50%}}
+
+/* ---------- 로그인 (명세 login-stage/card) ---------- */
+.login-stage{min-height:100%;background:linear-gradient(160deg,#EEF0FE,#F6F7FB);padding:34px 22px;display:flex;justify-content:center;align-items:center}
+.login-card{width:100%;max-width:340px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:30px 26px;text-align:center;box-shadow:0 20px 50px -30px rgba(20,22,29,.3)}
+.login-card .lo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--blurple),#7B84FF);margin:0 auto 16px;display:grid;place-items:center;color:#fff}
+.login-card h5{margin:0 0 4px;font-size:1.1rem;font-weight:700}
+.login-card p{margin:0 0 18px;font-size:.85rem;color:var(--slate)}
+.discord-btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  background:var(--blurple);color:#fff;font-weight:600;font-size:.95rem;
+  border:none;border-radius:10px;padding:13px;cursor:pointer;
+}
+.discord-btn:hover{background:var(--blurple-ink)}
+.discord-btn svg{width:20px;height:20px}
+.login-note{margin-top:14px;font-size:.75rem;color:var(--slate-soft)}
+.login-error{
+  margin-top:14px;font-size:.78rem;color:var(--danger);
+  background:#FCEBEA;border:1px solid rgba(198,65,59,.25);border-radius:8px;padding:9px 12px;
+}
+
+/* 전역 알림 (M2 기능 안내 등) */
+.notice{
+  position:fixed;right:18px;bottom:18px;z-index:120;max-width:340px;
+  background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;
+  font-size:.83rem;box-shadow:0 18px 40px -20px rgba(20,22,29,.5);
+}

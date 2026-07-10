@@ -1,0 +1,17 @@
+{
+  "name": "file-system",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,magenta \"pnpm --filter @fs/server dev\" \"pnpm --filter @fs/web dev\"",
+    "build": "pnpm --filter @fs/web build",
+    "start": "pnpm --filter @fs/server start",
+    "test": "pnpm --filter @fs/server test",
+    "typecheck": "pnpm -r typecheck",
+    "seed:acl": "pnpm --filter @fs/server seed:acl",
+    "seed:dev": "pnpm --filter @fs/server seed:dev"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
