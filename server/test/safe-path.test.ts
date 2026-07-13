@@ -63,4 +63,12 @@ describe('resolveAbs', () => {
     // '/data/storage2' 는 '/data/storage'의 prefix 문자열이지만 밖이다
     expect(() => resolveAbs(root, '/../storage2/x')).toThrow(PathError)
   })
+
+  it('구분자로 끝나는 루트(드라이브 루트 등)도 동작한다', () => {
+    // Windows C:\ 의 리눅스 유사 케이스 — root가 이미 sep으로 끝남
+    expect(resolveAbs('/', '/a/b')).toBe('/a/b')
+    expect(resolveAbs('/', '/')).toBe('/')
+    expect(() => resolveAbs('/data/', '/../x')).toThrow(PathError)
+    expect(resolveAbs('/data/', '/a')).toBe('/data/a')
+  })
 })

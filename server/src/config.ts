@@ -36,6 +36,8 @@ if (!devAuth && (!discord.clientSecret || !discord.botToken || !discord.guildId)
 export const config = {
   isProd,
   port: Number(env.PORT ?? 3000),
+  /** 바인딩 주소 — 본인 PC에서만 볼 때는 127.0.0.1 권장 */
+  host: env.HOST ?? '0.0.0.0',
   baseUrl: (env.BASE_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
   sessionSecret: env.SESSION_SECRET ?? 'dev-only-insecure-secret',
   storageRoot: path.resolve(env.STORAGE_ROOT ?? './data/storage'),
@@ -48,6 +50,12 @@ export const config = {
   watchPolling: env.WATCH_POLLING === 'true',
   /** 주기적 전체 재스캔(분) — 워처가 놓친 변경의 안전망. 0=끔 */
   rescanMinutes: Number(env.INDEX_RESCAN_MIN ?? 10),
+  /**
+   * true면 검색 인덱스(기동 전체 스캔·워처·재스캔)를 전부 끈다.
+   * 드라이브 루트처럼 초대형 트리를 STORAGE_ROOT로 잡을 때 필수 —
+   * 탐색/업로드는 정상이고 검색·최근 파일만 빈 결과가 된다.
+   */
+  indexDisabled: env.INDEX_DISABLED === 'true',
   /** 휴지통 보존 일수 — 초과분은 매일 영구 삭제. 0=자동 비우기 끔 */
   trashRetentionDays: Number(env.TRASH_RETENTION_DAYS ?? 30),
   /** 이 Discord role 보유자는 admin — 전 경로 접근(남의 home은 read), 관리 API 사용 */

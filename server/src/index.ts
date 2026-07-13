@@ -151,22 +151,26 @@ app.setNotFoundHandler((req, reply) => {
   return reply.code(404).send('Not Found (dev 모드에서는 web을 :5173으로 접속하세요)')
 })
 
-await app.listen({ port: config.port, host: '0.0.0.0' })
+await app.listen({ port: config.port, host: config.host })
 if (config.devAuth) {
   app.log.warn('⚠ dev auth 모드 — Discord 미설정. /api/auth/login 이 가짜 유저로 로그인합니다')
 }
 
 // 검색 인덱스: 기동 시 전체 스캔으로 실제 상태와 동기화 후, 워처가 외부 변경을 추적
-const indexed = await fullScan()
-app.log.info(`fs_index 전체 스캔 완료 — ${indexed}개 항목`)
-startWatcher(app.log)
-// 워처가 놓치는 변경(inotify 미지원 마운트 등)의 안전망 — 주기적 재스캔
-if (config.rescanMinutes > 0) {
-  const timer = setInterval(() => {
-    fullScan().catch((err) => app.log.warn({ err }, '주기 재스캔 실패'))
-  }, config.rescanMinutes * 60_000)
-  timer.unref()
-  app.log.info(`fs_index 주기 재스캔: ${config.rescanMinutes}분 간격`)
+if (config.indexDisabled) {
+  app.log.warn('INDEX_DISABLED=true — 검색 인덱스/워처 꺼짐 (검색·최근 파일은 빈 결과)')
+} else {
+  const indexed = await fullScan()
+  app.log.info(`fs_index 전체 스캔 완료 — ${indexed}개 항목`)
+  startWatcher(app.log)
+  // 워처가 놓치는 변경(inotify 미지원 마운트 등)의 안전망 — 주기적 재스캔
+  if (config.rescanMinutes > 0) {
+    const timer = setInterval(() => {
+      fullScan().catch((err) => app.log.warn({ err }, '주기 재스캔 실패'))
+    }, config.rescanMinutes * 60_000)
+    timer.unref()
+    app.log.info(`fs_index 주기 재스캔: ${config.rescanMinutes}분 간격`)
+  }
 }
 
 // 일일 유지보수 — 휴지통 자동 비우기 + 디스크 여유 경고 (기동 시 1회 + 매일)

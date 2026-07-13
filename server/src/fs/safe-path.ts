@@ -43,7 +43,9 @@ export function toRelPath(input: string | undefined): string {
 export function resolveAbs(storageRoot: string, relPath: string): string {
   const root = path.resolve(storageRoot)
   const abs = path.resolve(root, '.' + relPath)
-  if (abs !== root && !abs.startsWith(root + path.sep)) {
+  // 드라이브 루트(C:\)나 '/'처럼 root가 이미 구분자로 끝나는 경우를 처리
+  const rootWithSep = root.endsWith(path.sep) ? root : root + path.sep
+  if (abs !== root && !abs.startsWith(rootWithSep)) {
     throw new PathError('허용되지 않는 경로입니다', 400)
   }
   return abs
