@@ -2,13 +2,16 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { FsEntry, ListResponse } from '@fs/shared'
-import { IconFile, IconFolder, IconUpload } from '../../components/icons'
+import { IconFile, IconFolder, IconLock, IconUpload } from '../../components/icons'
 import { ApiError, api, downloadUrl } from '../../lib/api'
 import { formatBytes, formatMtime } from '../../lib/format'
 import { browseTo } from '../../lib/paths'
 import { DeleteDialog, MoveCopyDialog, RenameDialog } from '../actions/dialogs'
 import { useOverlays } from '../overlays/Overlays'
 import ContextMenu, { type MenuState } from './ContextMenu'
+import GridView from './GridView'
+
+type ViewMode = 'list' | 'grid'
 
 type DialogState =
   | { type: 'rename'; entry: FsEntry }
@@ -31,6 +34,13 @@ export default function Explorer({
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [dialog, setDialog] = useState<DialogState>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [view, setView] = useState<ViewMode>(() =>
+    localStorage.getItem('viewMode') === 'grid' ? 'grid' : 'list',
+  )
+  const switchView = (v: ViewMode) => {
+    setView(v)
+    localStorage.setItem('viewMode', v)
+  }
 
   const q = useQuery({
     queryKey: ['list', path],
@@ -90,6 +100,17 @@ export default function Explorer({
         </div>
       )
     }
+    if (view === 'grid') {
+      return (
+        <GridView
+          entries={q.data.entries}
+          selected={selected}
+          onSelect={onSelect}
+          onOpen={openEntry}
+          onMenu={(entry, ev) => setMenu({ x: ev.clientX, y: ev.clientY, entry })}
+        />
+      )
+    }
     return (
       <table className="lv">
         <thead>
@@ -101,35 +122,39 @@ export default function Explorer({
           </tr>
         </thead>
         <tbody>
-          {q.data.entries.map((entry) => (
-            <tr
-              key={entry.path}
-              className={selected?.path === entry.path ? 'sel' : ''}
-              onClick={() => onSelect(entry)}
-              onDoubleClick={() => openEntry(entry)}
-              onContextMenu={(ev) => {
-                ev.preventDefault()
-                onSelect(entry)
-                setMenu({ x: ev.clientX, y: ev.clientY, entry })
-              }}
-            >
-              <td className="nm">
-                <span className={'fic' + (entry.isDir ? ' f' : '')}>
-                  {entry.isDir ? <IconFolder /> : <IconFile />}
-                </span>
-                {entry.name}
-              </td>
-              <td className="hidem">
-                {entry.uploader ? (
-                  <span className="who"><i />@{entry.uploader}</span>
-                ) : (
-                  <span className="mono">—</span>
-                )}
-              </td>
-              <td className="mono">{formatMtime(entry.mtime)}</td>
-              <td className="mono">{entry.isDir ? '—' : formatBytes(entry.size)}</td>
-            </tr>
-          ))}
+          {q.data.entries.map((entry) => {
+            const readonlyDir = entry.isDir && entry.permission === 'read'
+            return (
+              <tr
+                key={entry.path}
+                className={selected?.path === entry.path ? 'sel' : ''}
+                onClick={() => onSelect(entry)}
+                onDoubleClick={() => openEntry(entry)}
+                onContextMenu={(ev) => {
+                  ev.preventDefault()
+                  onSelect(entry)
+                  setMenu({ x: ev.clientX, y: ev.clientY, entry })
+                }}
+              >
+                <td className="nm">
+                  <span className={'fic' + (entry.isDir ? ' f' : '') + (readonlyDir ? ' ro' : '')}>
+                    {entry.isDir ? <IconFolder /> : <IconFile />}
+                  </span>
+                  {entry.name}
+                  {readonlyDir && <IconLock className="ro-mini" width={11} height={11} />}
+                </td>
+                <td className="hidem">
+                  {entry.uploader ? (
+                    <span className="who"><i />@{entry.uploader}</span>
+                  ) : (
+                    <span className="mono">—</span>
+                  )}
+                </td>
+                <td className="mono">{formatMtime(entry.mtime)}</td>
+                <td className="mono">{entry.isDir ? '—' : formatBytes(entry.size)}</td>
+              </tr>
+            )
+          })}
         </tbody>
       </table>
     )
@@ -151,8 +176,12 @@ export default function Explorer({
     >
       <div className="m-toolbar">
         <span className="toggle">
-          <button className="on">리스트</button>
-          <button disabled title="그리드 뷰는 M4에서 제공됩니다">그리드</button>
+          <button className={view === 'list' ? 'on' : ''} onClick={() => switchView('list')}>
+            리스트
+          </button>
+          <button className={view === 'grid' ? 'on' : ''} onClick={() => switchView('grid')}>
+            그리드
+          </button>
         </span>
         <span className="m-count">{q.data ? `${q.data.entries.length} 항목` : ''}</span>
       </div>

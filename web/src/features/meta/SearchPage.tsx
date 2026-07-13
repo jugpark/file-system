@@ -4,8 +4,7 @@ import type { SearchResponse } from '@fs/shared'
 import { IconSearch } from '../../components/icons'
 import { api } from '../../lib/api'
 import { useMe } from '../auth/useMe'
-import Sidebar from '../sidebar/Sidebar'
-import TopBar from '../shell/TopBar'
+import AppLayout from '../shell/AppLayout'
 import EntriesTable from './EntriesTable'
 
 /** UI 명세 §02-B 검색 — 파일명 부분 일치, 권한 범위 내 결과만 */
@@ -21,11 +20,21 @@ export default function SearchPage() {
   })
 
   return (
-    <div className="app">
-      <TopBar path="/" me={me} title={`검색: ${q}`} />
-      <div className="app-body">
-        <Sidebar path={null} me={me} />
-        <section className="main">
+    <AppLayout
+      me={me}
+      path={null}
+      title={`검색: ${q}`}
+      info={
+        <aside className="info">
+          <div className="placeholder">
+            파일명 부분 일치로 검색하며
+            <br />
+            내 권한 범위의 결과만 보입니다
+          </div>
+        </aside>
+      }
+    >
+      <section className="main">
           <div className="m-toolbar">
             <span className="m-count">
               {query.data
@@ -60,15 +69,7 @@ export default function SearchPage() {
           {query.data && query.data.entries.length > 0 && (
             <EntriesTable entries={query.data.entries} />
           )}
-        </section>
-        <aside className="info">
-          <div className="placeholder">
-            파일명 부분 일치로 검색하며
-            <br />
-            내 권한 범위의 결과만 보입니다
-          </div>
-        </aside>
-      </div>
-    </div>
+      </section>
+    </AppLayout>
   )
 }

@@ -11,10 +11,12 @@ export default function TopBar({
   path,
   me,
   title,
+  onMenu,
 }: {
   path: string
   me: MeResponse
   title?: string
+  onMenu?: () => void
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -40,6 +42,13 @@ export default function TopBar({
 
   return (
     <header className="gnb">
+      {onMenu && (
+        <button className="btn-menu" onClick={onMenu} aria-label="메뉴 열기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={17} height={17}>
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+      )}
       <div className="brand">
         <span className="glyph" aria-hidden="true">
           <IconFolder width={15} height={15} strokeWidth={2.2} />

@@ -48,6 +48,10 @@ export const config = {
   watchPolling: env.WATCH_POLLING === 'true',
   /** 주기적 전체 재스캔(분) — 워처가 놓친 변경의 안전망. 0=끔 */
   rescanMinutes: Number(env.INDEX_RESCAN_MIN ?? 10),
+  /** 휴지통 보존 일수 — 초과분은 매일 영구 삭제. 0=자동 비우기 끔 */
+  trashRetentionDays: Number(env.TRASH_RETENTION_DAYS ?? 30),
+  /** 썸네일 디스크 캐시 (스토리지가 아니라 DB 옆에 둔다) */
+  thumbsDir: path.resolve(path.dirname(path.resolve(env.DATABASE_PATH ?? './data/app.db')), 'thumbs'),
   discord,
   devAuth,
   devUser: {
@@ -61,3 +65,4 @@ fs.mkdirSync(config.storageRoot, { recursive: true })
 fs.mkdirSync(config.tmpDir, { recursive: true })
 fs.mkdirSync(config.trashDir, { recursive: true })
 fs.mkdirSync(path.dirname(config.databasePath), { recursive: true })
+fs.mkdirSync(config.thumbsDir, { recursive: true })

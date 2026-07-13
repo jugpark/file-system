@@ -10,12 +10,14 @@ import { fetchMemberRoles } from './auth/discord'
 import { deleteSession, getSessionWithUser, updateSessionRoles } from './auth/session'
 import { PathError } from './fs/safe-path'
 import { fullScan } from './fs/indexer'
+import { purgeTrash } from './fs/purge'
 import authRoutes from './routes/auth'
 import fsRoutes from './routes/fs'
 import fsWriteRoutes from './routes/fs-write'
 import healthRoutes from './routes/health'
 import meRoutes from './routes/me'
 import metaRoutes from './routes/meta'
+import thumbnailRoutes from './routes/thumbnail'
 import { errorBody } from './types'
 import { startWatcher } from './watcher'
 
@@ -95,6 +97,7 @@ await app.register(meRoutes)
 await app.register(fsRoutes)
 await app.register(fsWriteRoutes)
 await app.register(metaRoutes)
+await app.register(thumbnailRoutes)
 await app.register(healthRoutes)
 
 // ── SPA 정적 서빙 (프로덕션: web 빌드 결과물이 server/public 에 있음) ──
@@ -128,4 +131,17 @@ if (config.rescanMinutes > 0) {
   }, config.rescanMinutes * 60_000)
   timer.unref()
   app.log.info(`fs_index 주기 재스캔: ${config.rescanMinutes}분 간격`)
+}
+
+// 휴지통 자동 비우기 — 기동 시 1회 + 매일
+if (config.trashRetentionDays > 0) {
+  const runPurge = async () => {
+    const n = await purgeTrash(config.trashRetentionDays)
+    if (n > 0) app.log.info(`휴지통 자동 비우기: ${n}개 영구 삭제 (보존 ${config.trashRetentionDays}일)`)
+  }
+  runPurge().catch((err) => app.log.warn({ err }, '휴지통 비우기 실패'))
+  const purgeTimer = setInterval(() => {
+    runPurge().catch((err) => app.log.warn({ err }, '휴지통 비우기 실패'))
+  }, 24 * 60 * 60 * 1000)
+  purgeTimer.unref()
 }

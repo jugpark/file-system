@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
-import type { ActivityAction, ActivityResponse, FsEntry, ListResponse } from '@fs/shared'
+import { isImageName, type ActivityAction, type ActivityResponse, type FsEntry, type ListResponse } from '@fs/shared'
 import { IconFile, IconFolder, IconLock, IconLockOpen } from '../../components/icons'
-import { api } from '../../lib/api'
+import { api, thumbnailUrl } from '../../lib/api'
 import { extOf, formatBytes, formatMtime } from '../../lib/format'
 
 const ACTION_LABEL: Record<ActivityAction, string> = {
@@ -14,8 +14,15 @@ const ACTION_LABEL: Record<ActivityAction, string> = {
   restore: '복원함',
 }
 
-/** UI 명세 §02-D — 정보·로그 패널. 활동 로그 데이터는 M3에서 연결 */
-export default function InfoPanel({ entry }: { entry: FsEntry | null }) {
+/** UI 명세 §02-D — 정보·로그 패널. variant='sheet'면 <1024px 바텀 시트 내부용 */
+export default function InfoPanel({
+  entry,
+  variant,
+}: {
+  entry: FsEntry | null
+  variant?: 'sheet'
+}) {
+  const rootClass = 'info' + (variant === 'sheet' ? ' in-sheet' : '')
   // 폴더면 항목 수 표시용으로 목록을 조회 (탐색기와 캐시 공유)
   const childList = useQuery({
     queryKey: ['list', entry?.path],
@@ -35,7 +42,7 @@ export default function InfoPanel({ entry }: { entry: FsEntry | null }) {
 
   if (!entry) {
     return (
-      <aside className="info">
+      <aside className={rootClass}>
         <div className="placeholder">
           파일이나 폴더를 선택하면
           <br />
@@ -50,9 +57,19 @@ export default function InfoPanel({ entry }: { entry: FsEntry | null }) {
     : `${extOf(entry.name)} · ${formatBytes(entry.size)}`
 
   return (
-    <aside className="info">
+    <aside className={rootClass}>
       <div className="thumb" aria-hidden="true">
-        {entry.isDir ? <IconFolder /> : <IconFile />}
+        {!entry.isDir && isImageName(entry.name) ? (
+          <img
+            src={thumbnailUrl(entry.path, 480)}
+            alt=""
+            onError={(e) => (e.currentTarget.style.display = 'none')}
+          />
+        ) : entry.isDir ? (
+          <IconFolder />
+        ) : (
+          <IconFile />
+        )}
       </div>
       <h5>{entry.name}</h5>
       <div className="sub">{sub}</div>

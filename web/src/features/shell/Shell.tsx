@@ -4,10 +4,9 @@ import type { FsEntry } from '@fs/shared'
 import { useMe } from '../auth/useMe'
 import Explorer from '../explorer/Explorer'
 import InfoPanel from '../info/InfoPanel'
-import Sidebar from '../sidebar/Sidebar'
-import TopBar from './TopBar'
+import AppLayout from './AppLayout'
 
-/** UI 명세 §02 — 3단 레이아웃 (LNB · Explorer · Info) */
+/** UI 명세 §02 — 3단 레이아웃. <1024px에서 정보 패널은 바텀 시트로 전환 */
 export default function Shell() {
   const me = useMe().data!
   const params = useParams()
@@ -18,13 +17,16 @@ export default function Shell() {
   useEffect(() => setSelected(null), [path])
 
   return (
-    <div className="app">
-      <TopBar path={path} me={me} />
-      <div className="app-body">
-        <Sidebar path={path} me={me} />
-        <Explorer path={path} selected={selected} onSelect={setSelected} />
-        <InfoPanel entry={selected} />
-      </div>
-    </div>
+    <AppLayout me={me} path={path} info={<InfoPanel entry={selected} />}>
+      <Explorer path={path} selected={selected} onSelect={setSelected} />
+      {selected && (
+        <div className="sheet-overlay" onMouseDown={() => setSelected(null)}>
+          <div className="sheet" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="sheet-grip" aria-hidden="true" />
+            <InfoPanel entry={selected} variant="sheet" />
+          </div>
+        </div>
+      )}
+    </AppLayout>
   )
 }

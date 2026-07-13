@@ -39,3 +39,7 @@ export function apiJson<T>(url: string, method: string, body: unknown): Promise<
 export function downloadUrl(path: string): string {
   return `/api/fs/download?path=${encodeURIComponent(path)}`
 }
+
+export function thumbnailUrl(path: string, width = 240): string {
+  return `/api/fs/thumbnail?path=${encodeURIComponent(path)}&w=${width}`
+}

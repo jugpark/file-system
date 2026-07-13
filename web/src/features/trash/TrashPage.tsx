@@ -6,8 +6,7 @@ import { api } from '../../lib/api'
 import { formatMtime } from '../../lib/format'
 import { useFsActions } from '../actions/useFsActions'
 import { useMe } from '../auth/useMe'
-import Sidebar from '../sidebar/Sidebar'
-import TopBar from '../shell/TopBar'
+import AppLayout from '../shell/AppLayout'
 
 /** 휴지통 — 내가 지운 것 + write 권한 범위의 항목. 복원은 원래 자리로 */
 export default function TrashPage() {
@@ -27,11 +26,21 @@ export default function TrashPage() {
   }
 
   return (
-    <div className="app">
-      <TopBar path="/" me={me} title="휴지통" />
-      <div className="app-body">
-        <Sidebar path={null} me={me} />
-        <section className="main">
+    <AppLayout
+      me={me}
+      path={null}
+      title="휴지통"
+      info={
+        <aside className="info">
+          <div className="placeholder">
+            휴지통 항목은 원래 위치로
+            <br />
+            복원됩니다
+          </div>
+        </aside>
+      }
+    >
+      <section className="main">
           {q.isPending && (
             <div className="sk">
               {[40, 55].map((w, i) => (
@@ -88,15 +97,7 @@ export default function TrashPage() {
               </tbody>
             </table>
           )}
-        </section>
-        <aside className="info">
-          <div className="placeholder">
-            휴지통 항목은 원래 위치로
-            <br />
-            복원됩니다
-          </div>
-        </aside>
-      </div>
-    </div>
+      </section>
+    </AppLayout>
   )
 }

@@ -3,8 +3,7 @@ import type { RecentResponse } from '@fs/shared'
 import { IconClock } from '../../components/icons'
 import { api } from '../../lib/api'
 import { useMe } from '../auth/useMe'
-import Sidebar from '../sidebar/Sidebar'
-import TopBar from '../shell/TopBar'
+import AppLayout from '../shell/AppLayout'
 import EntriesTable from './EntriesTable'
 
 /** UI 명세 §02-A '최근 파일' — 실제 mtime 기준 최근 수정 파일 */
@@ -16,11 +15,21 @@ export default function RecentPage() {
   })
 
   return (
-    <div className="app">
-      <TopBar path="/" me={me} title="최근 파일" />
-      <div className="app-body">
-        <Sidebar path={null} me={me} />
-        <section className="main">
+    <AppLayout
+      me={me}
+      path={null}
+      title="최근 파일"
+      info={
+        <aside className="info">
+          <div className="placeholder">
+            수정 시각 기준 최근 파일
+            <br />
+            30개까지 표시됩니다
+          </div>
+        </aside>
+      }
+    >
+      <section className="main">
           {query.isPending && (
             <div className="sk">
               {[45, 60, 35].map((w, i) => (
@@ -40,15 +49,7 @@ export default function RecentPage() {
           {query.data && query.data.entries.length > 0 && (
             <EntriesTable entries={query.data.entries} />
           )}
-        </section>
-        <aside className="info">
-          <div className="placeholder">
-            수정 시각 기준 최근 파일
-            <br />
-            30개까지 표시됩니다
-          </div>
-        </aside>
-      </div>
-    </div>
+      </section>
+    </AppLayout>
   )
 }

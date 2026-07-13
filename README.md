@@ -56,9 +56,12 @@ Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callb
       휴지통(+복원, `/trash` 페이지), 전 쓰기 작업 activity_log 기록, 목록에 업로더 표시
 - [x] **M3** — 정보 패널 활동 타임라인, 파일명 검색(`/search`), 최근 파일(`/recent`),
       fs_index(기동 전체 스캔 + chokidar 워처 + 주기 재스캔 안전망)
-- [ ] **M4** — 그리드 뷰·썸네일, 반응형(바텀 시트), 휴지통 자동 비우기
+- [x] **M4** — 그리드 뷰(+이미지 썸네일, sharp·webp 디스크 캐시), 반응형(<1024px 정보
+      패널→바텀 시트, <720px LNB→드로어), 읽기 전용 자물쇠 시각화, 휴지통 자동 비우기
+      (`TRASH_RETENTION_DAYS`, 기본 30일)
 
-UI에 남은 비활성 요소(그리드 토글)는 M4에서 활성화된다.
+**M1~M4 전체 완료.** 이후 후보(v2): ACL 관리 UI · SSE 실시간 갱신 · 파일 미리보기 ·
+공유 링크 · 버전 관리 — `../file-system-dev-spec.md` §10 참고.
 
 > **검색 구현 노트**: dev-spec의 FTS5 대신 `name_search`(NFC·소문자) LIKE 스캔.
 > 10~20인 NAS 규모에서는 FTS 동기화 복잡도가 이득보다 크다 — 코퍼스가 커지면 교체.
