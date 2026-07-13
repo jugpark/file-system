@@ -3,6 +3,8 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import LoginPage from '../features/auth/LoginPage'
 import { useMe } from '../features/auth/useMe'
+import RecentPage from '../features/meta/RecentPage'
+import SearchPage from '../features/meta/SearchPage'
 import { OverlaysProvider } from '../features/overlays/Overlays'
 import Shell from '../features/shell/Shell'
 import TrashPage from '../features/trash/TrashPage'
@@ -58,6 +60,22 @@ export default function App() {
               element={
                 <RequireAuth>
                   <TrashPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/search"
+              element={
+                <RequireAuth>
+                  <SearchPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/recent"
+              element={
+                <RequireAuth>
+                  <RecentPage />
                 </RequireAuth>
               }
             />

@@ -9,12 +9,15 @@ import { config } from './config'
 import { fetchMemberRoles } from './auth/discord'
 import { deleteSession, getSessionWithUser, updateSessionRoles } from './auth/session'
 import { PathError } from './fs/safe-path'
+import { fullScan } from './fs/indexer'
 import authRoutes from './routes/auth'
 import fsRoutes from './routes/fs'
 import fsWriteRoutes from './routes/fs-write'
 import healthRoutes from './routes/health'
 import meRoutes from './routes/me'
+import metaRoutes from './routes/meta'
 import { errorBody } from './types'
+import { startWatcher } from './watcher'
 
 const app = Fastify({ logger: true })
 
@@ -91,6 +94,7 @@ await app.register(authRoutes)
 await app.register(meRoutes)
 await app.register(fsRoutes)
 await app.register(fsWriteRoutes)
+await app.register(metaRoutes)
 await app.register(healthRoutes)
 
 // ── SPA 정적 서빙 (프로덕션: web 빌드 결과물이 server/public 에 있음) ──
@@ -111,4 +115,17 @@ app.setNotFoundHandler((req, reply) => {
 await app.listen({ port: config.port, host: '0.0.0.0' })
 if (config.devAuth) {
   app.log.warn('⚠ dev auth 모드 — Discord 미설정. /api/auth/login 이 가짜 유저로 로그인합니다')
+}
+
+// 검색 인덱스: 기동 시 전체 스캔으로 실제 상태와 동기화 후, 워처가 외부 변경을 추적
+const indexed = await fullScan()
+app.log.info(`fs_index 전체 스캔 완료 — ${indexed}개 항목`)
+startWatcher(app.log)
+// 워처가 놓치는 변경(inotify 미지원 마운트 등)의 안전망 — 주기적 재스캔
+if (config.rescanMinutes > 0) {
+  const timer = setInterval(() => {
+    fullScan().catch((err) => app.log.warn({ err }, '주기 재스캔 실패'))
+  }, config.rescanMinutes * 60_000)
+  timer.unref()
+  app.log.info(`fs_index 주기 재스캔: ${config.rescanMinutes}분 간격`)
 }

@@ -118,3 +118,31 @@ export interface TrashItem {
 export interface TrashListResponse {
   items: TrashItem[]
 }
+
+// ─── 메타데이터 조회 (M3) ───────────────────────────────────
+
+/** 검색·최근 파일 결과 공용 — FsEntry와 동일 형태 */
+export interface SearchResponse {
+  query: string
+  entries: FsEntry[]
+  /** 권한 필터 전 원본 매치 수 (더 있음 표시용) */
+  truncated: boolean
+}
+
+export interface RecentResponse {
+  entries: FsEntry[]
+}
+
+export interface ActivityItem {
+  id: number
+  action: ActivityAction
+  actorName: string
+  createdAt: number
+  /** rename/move의 from 등 부가 정보 */
+  detail: Record<string, unknown> | null
+}
+
+export interface ActivityResponse {
+  path: string
+  items: ActivityItem[]
+}

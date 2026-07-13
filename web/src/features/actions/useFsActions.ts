@@ -16,6 +16,8 @@ export function useFsActions() {
     queryClient.invalidateQueries({ queryKey: ['list'] })
     queryClient.invalidateQueries({ queryKey: ['tree'] })
     queryClient.invalidateQueries({ queryKey: ['trash'] })
+    queryClient.invalidateQueries({ queryKey: ['recent'] })
+    queryClient.invalidateQueries({ queryKey: ['activity'] })
   }
 
   async function run<T>(fn: () => Promise<T>): Promise<T | null> {

@@ -75,6 +75,7 @@ export function OverlaysProvider({ children }: { children: ReactNode }) {
             patch(id, { status: 'done', loaded: file.size })
             queryClient.invalidateQueries({ queryKey: ['list'] })
             queryClient.invalidateQueries({ queryKey: ['tree'] })
+            queryClient.invalidateQueries({ queryKey: ['recent'] })
             drop(id, 2500)
           } else {
             let msg = `업로드 실패 (${xhr.status})`

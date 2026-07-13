@@ -46,6 +46,18 @@ CREATE TABLE IF NOT EXISTS trash (
   deleted_by TEXT NOT NULL,
   deleted_at INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS fs_index (
+  path TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  name_search TEXT NOT NULL,
+  parent TEXT NOT NULL,
+  is_dir INTEGER NOT NULL,
+  size INTEGER NOT NULL,
+  mtime INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_fs_index_parent ON fs_index(parent);
+CREATE INDEX IF NOT EXISTS idx_fs_index_mtime ON fs_index(mtime);
 CREATE TABLE IF NOT EXISTS folder_acl (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   path_prefix TEXT NOT NULL,

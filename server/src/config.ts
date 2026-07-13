@@ -1,6 +1,15 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
+// .env 자동 로드 (server/.env 우선, 없으면 repo 루트) — 이미 설정된 env가 우선한다
+for (const candidate of ['.env', '../.env']) {
+  const p = path.resolve(candidate)
+  if (fs.existsSync(p)) {
+    process.loadEnvFile(p)
+    break
+  }
+}
+
 const env = process.env
 const isProd = env.NODE_ENV === 'production'
 
@@ -35,6 +44,10 @@ export const config = {
   trashDir: path.resolve(env.STORAGE_ROOT ?? './data/storage', '.trash'),
   databasePath: path.resolve(env.DATABASE_PATH ?? './data/app.db'),
   maxUploadMb: Number(env.MAX_UPLOAD_MB ?? 2048),
+  /** inotify가 안 통하는 마운트(9p/drvfs, 일부 NFS/SMB)에서 true — 폴링 감시 */
+  watchPolling: env.WATCH_POLLING === 'true',
+  /** 주기적 전체 재스캔(분) — 워처가 놓친 변경의 안전망. 0=끔 */
+  rescanMinutes: Number(env.INDEX_RESCAN_MIN ?? 10),
   discord,
   devAuth,
   devUser: {

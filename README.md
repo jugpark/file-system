@@ -54,7 +54,14 @@ Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callb
 - [x] **M1** — 로그인/차단, ACL·경로보안(+테스트), 트리·리스트·breadcrumb·다운로드, 스켈레톤
 - [x] **M2** — 업로드(DnD·진행률 토스트·원자적 저장)·폴더 생성·이름 변경·이동/복사·
       휴지통(+복원, `/trash` 페이지), 전 쓰기 작업 activity_log 기록, 목록에 업로더 표시
-- [ ] **M3** — 정보 패널 활동 타임라인, 검색(FTS5), 최근 파일, chokidar 인덱스
+- [x] **M3** — 정보 패널 활동 타임라인, 파일명 검색(`/search`), 최근 파일(`/recent`),
+      fs_index(기동 전체 스캔 + chokidar 워처 + 주기 재스캔 안전망)
 - [ ] **M4** — 그리드 뷰·썸네일, 반응형(바텀 시트), 휴지통 자동 비우기
 
-UI에 남은 비활성 요소(검색, 최근 파일, 그리드 토글)는 M3/M4에서 활성화된다.
+UI에 남은 비활성 요소(그리드 토글)는 M4에서 활성화된다.
+
+> **검색 구현 노트**: dev-spec의 FTS5 대신 `name_search`(NFC·소문자) LIKE 스캔.
+> 10~20인 NAS 규모에서는 FTS 동기화 복잡도가 이득보다 크다 — 코퍼스가 커지면 교체.
+>
+> **inotify 미지원 마운트**(WSL 9p/drvfs, 일부 NFS/SMB)에서는 `WATCH_POLLING=true`
+> 필요. 어느 환경이든 `INDEX_RESCAN_MIN`(기본 10분) 주기 재스캔이 안전망.

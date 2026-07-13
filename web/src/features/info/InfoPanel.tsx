@@ -1,8 +1,18 @@
 import { useQuery } from '@tanstack/react-query'
-import type { FsEntry, ListResponse } from '@fs/shared'
+import type { ActivityAction, ActivityResponse, FsEntry, ListResponse } from '@fs/shared'
 import { IconFile, IconFolder, IconLock, IconLockOpen } from '../../components/icons'
 import { api } from '../../lib/api'
 import { extOf, formatBytes, formatMtime } from '../../lib/format'
+
+const ACTION_LABEL: Record<ActivityAction, string> = {
+  upload: '업로드함',
+  mkdir: '폴더를 만듦',
+  rename: '이름을 변경함',
+  move: '이동함',
+  copy: '복사본을 만듦',
+  trash: '삭제함',
+  restore: '복원함',
+}
 
 /** UI 명세 §02-D — 정보·로그 패널. 활동 로그 데이터는 M3에서 연결 */
 export default function InfoPanel({ entry }: { entry: FsEntry | null }) {
@@ -12,6 +22,15 @@ export default function InfoPanel({ entry }: { entry: FsEntry | null }) {
     queryFn: () => api<ListResponse>(`/api/fs/list?path=${encodeURIComponent(entry!.path)}`),
     enabled: !!entry?.isDir,
     staleTime: 30_000,
+  })
+
+  // UI 명세 §02-D — 파일 생애주기 타임라인
+  const activity = useQuery({
+    queryKey: ['activity', entry?.path],
+    queryFn: () =>
+      api<ActivityResponse>(`/api/activity?path=${encodeURIComponent(entry!.path)}&limit=8`),
+    enabled: !!entry,
+    staleTime: 10_000,
   })
 
   if (!entry) {
@@ -59,10 +78,32 @@ export default function InfoPanel({ entry }: { entry: FsEntry | null }) {
           <span className="k">수정</span>
           <span className="v">{formatMtime(entry.mtime)}</span>
         </div>
+        {entry.uploader && (
+          <div className="row">
+            <span className="k">업로더</span>
+            <span className="v">@{entry.uploader}</span>
+          </div>
+        )}
       </div>
 
       <div className="m-log">
-        <div className="todo">활동 로그는 M3에서 제공됩니다.</div>
+        {activity.isPending && <div className="todo">기록 불러오는 중…</div>}
+        {activity.data && activity.data.items.length === 0 && (
+          <div className="todo">기록된 활동이 없습니다. (직접 반입된 파일일 수 있음)</div>
+        )}
+        {activity.data?.items.map((item) => (
+          <div className="lg" key={item.id}>
+            <span className="d" aria-hidden="true" />
+            <span>
+              <b>@{item.actorName}</b> 님이 {ACTION_LABEL[item.action]}
+              {item.action === 'rename' && typeof item.detail?.from === 'string' && (
+                <> ({(item.detail.from as string).split('/').pop()} →)</>
+              )}
+              <br />
+              <span className="tm">{formatMtime(item.createdAt)}</span>
+            </span>
+          </div>
+        ))}
       </div>
     </aside>
   )

@@ -74,9 +74,10 @@ button{font-family:var(--sans)}
   flex:none;display:flex;align-items:center;gap:7px;
   font-size:.8rem;color:var(--slate-soft);
   border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--surface);
-  cursor:not-allowed;
 }
-.gnb-search input{border:none;outline:none;background:transparent;font-family:inherit;font-size:inherit;color:var(--ink);width:130px;cursor:not-allowed}
+.gnb-search input{border:none;outline:none;background:transparent;font-family:inherit;font-size:inherit;color:var(--ink);width:130px}
+.gnb-search.live:focus-within{border-color:var(--blurple);box-shadow:0 0 0 3px var(--blurple-soft)}
+.gnb-search.live:focus-within input{width:180px;transition:width .15s}
 @media (max-width:620px){ .gnb-search{display:none} }
 
 .gnb-user{display:flex;align-items:center;gap:9px;flex:none}

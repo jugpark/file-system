@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Fragment } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Fragment, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { MeResponse } from '@fs/shared'
 import { IconFolder, IconLogout, IconSearch } from '../../components/icons'
 import { api } from '../../lib/api'
@@ -18,6 +18,13 @@ export default function TopBar({
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const [params] = useSearchParams()
+  const [query, setQuery] = useState(params.get('q') ?? '')
+
+  const submitSearch = () => {
+    const q = query.trim()
+    if (q) navigate(`/search?q=${encodeURIComponent(q)}`)
+  }
 
   const logout = async () => {
     await api<void>('/api/auth/logout', { method: 'POST' })
@@ -62,9 +69,15 @@ export default function TopBar({
 
       <span className="spacer" />
 
-      <label className="gnb-search" title="검색은 M3에서 제공됩니다">
+      <label className="gnb-search live">
         <IconSearch width={12} height={12} strokeWidth={2.2} />
-        <input placeholder="파일 검색" disabled aria-label="파일 검색 (준비 중)" />
+        <input
+          placeholder="파일 검색"
+          aria-label="파일 검색"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && submitSearch()}
+        />
       </label>
 
       <div className="gnb-user">

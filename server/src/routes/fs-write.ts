@@ -23,6 +23,7 @@ import { loadAclRules } from '../acl/store'
 import { config } from '../config'
 import { db } from '../db'
 import { trash, users } from '../db/schema'
+import { indexMovePrefix, indexRemove, indexUpsert } from '../fs/indexer'
 import { deleteMetaPrefix, moveMetaPrefix, recordActivity, setFileMeta } from '../fs/meta'
 import { resolveCollision, resolveRestoreName, validateEntryName } from '../fs/names'
 import { PathError, resolveAbs, toRelPath } from '../fs/safe-path'
@@ -84,6 +85,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
       await fsp.rename(tmpPath, path.join(absDir, finalName))
       setFileMeta(destRel, user.id)
       recordActivity('upload', destRel, user.id, { size })
+      indexUpsert(destRel, { isDir: false, size, mtimeMs: Date.now() })
       const res: UploadResponse = { path: destRel, name: finalName }
       return res
     } catch (err) {
@@ -108,6 +110,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
     }
     await fsp.mkdir(destAbs)
     recordActivity('mkdir', destRel, user.id)
+    indexUpsert(destRel, { isDir: true, size: 0, mtimeMs: Date.now() })
     return { path: destRel }
   })
 
@@ -134,6 +137,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
     }
     await fsp.rename(abs, destAbs)
     moveMetaPrefix(rel, destRel)
+    indexMovePrefix(rel, destRel)
     recordActivity('rename', destRel, user.id, { from: rel })
     return { path: destRel }
   })
@@ -185,11 +189,21 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
         if (mode === 'move') {
           await fsp.rename(srcAbs, newAbs)
           moveMetaPrefix(srcRel, newRel)
+          indexMovePrefix(srcRel, newRel)
           recordActivity('move', newRel, user.id, { from: srcRel })
         } else {
           await fsp.cp(srcAbs, newAbs, { recursive: true, errorOnExist: true, force: false })
           if (stat.isFile()) setFileMeta(newRel, user.id)
           recordActivity('copy', newRel, user.id, { from: srcRel })
+          // 복사본 인덱싱 — 폴더 하위는 워처가 뒤따라 채운다
+          const newStat = await fsp.stat(newAbs).catch(() => null)
+          if (newStat) {
+            indexUpsert(newRel, {
+              isDir: newStat.isDirectory(),
+              size: newStat.size,
+              mtimeMs: newStat.mtimeMs,
+            })
+          }
         }
         results.push({ path: srcRel, ok: true, newPath: newRel })
       } catch (err) {
@@ -240,6 +254,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
           })
           .run()
         deleteMetaPrefix(rel)
+        indexRemove(rel)
         recordActivity('trash', rel, user.id, { trashId: id })
         results.push({ path: rel, ok: true })
       } catch (err) {
@@ -312,9 +327,19 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
         await fsp.mkdir(parentAbs, { recursive: true })
         const finalName = await resolveRestoreName(parentAbs, path.basename(row.originalPath))
         const destRel = childPath(parentRel, finalName)
-        await fsp.rename(path.join(config.trashDir, id), resolveAbs(config.storageRoot, destRel))
+        const destAbs = resolveAbs(config.storageRoot, destRel)
+        await fsp.rename(path.join(config.trashDir, id), destAbs)
         db.delete(trash).where(eq(trash.id, id)).run()
         recordActivity('restore', destRel, user.id, { trashId: id, originalPath: row.originalPath })
+        // 복원 항목 인덱싱 — 폴더 하위는 워처가 뒤따라 채운다
+        const restoredStat = await fsp.stat(destAbs).catch(() => null)
+        if (restoredStat) {
+          indexUpsert(destRel, {
+            isDir: restoredStat.isDirectory(),
+            size: restoredStat.size,
+            mtimeMs: restoredStat.mtimeMs,
+          })
+        }
         results.push({ path: row.originalPath, ok: true, newPath: destRel })
       } catch (err) {
         results.push({

@@ -90,9 +90,9 @@ export default function Sidebar({ path, me }: { path: string | null; me: MeRespo
         <Link className={inHome ? 'on' : ''} to={browseTo(me.homePath)}>
           <IconFolder />내 작업 공간
         </Link>
-        <div className="nav-item disabled" title="최근 파일은 M3에서 제공됩니다">
+        <Link className={location.pathname === '/recent' ? 'on' : ''} to="/recent">
           <IconClock />최근 파일
-        </div>
+        </Link>
         <Link className={inTrash ? 'on' : ''} to="/trash">
           <IconTrash />휴지통
         </Link>
