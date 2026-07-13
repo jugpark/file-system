@@ -75,3 +75,24 @@ describe('canSee', () => {
     expect(canSee(noRole, '/home/999', rules)).toBe(false)
   })
 })
+
+describe('admin (R1)', () => {
+  const admin: AclUser = { id: '900', roles: ['whatever'], isAdmin: true }
+
+  it('ACL 없이도 전 경로 write', () => {
+    expect(resolvePermission(admin, '/design/x', rules)).toBe('write')
+    expect(resolvePermission(admin, '/random/nowhere', [])).toBe('write')
+    expect(canSee(admin, '/random', [])).toBe(true)
+  })
+
+  it('자기 home은 write, 남의 home은 read까지만', () => {
+    expect(resolvePermission(admin, '/home/900/x', rules)).toBe('write')
+    expect(resolvePermission(admin, '/home/111', rules)).toBe('read')
+    expect(resolvePermission(admin, '/home/111/비밀.txt', [])).toBe('read')
+  })
+
+  it('isAdmin=false면 일반 규칙 그대로', () => {
+    const notAdmin: AclUser = { id: '901', roles: [], isAdmin: false }
+    expect(resolvePermission(notAdmin, '/design', rules)).toBe('none')
+  })
+})

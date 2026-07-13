@@ -74,12 +74,16 @@ export function RenameDialog({ entry, onClose }: { entry: FsEntry; onClose: () =
   )
 }
 
+function labelFor(entries: FsEntry[]): string {
+  return entries.length === 1 ? `"${entries[0]!.name}"` : `${entries.length}개 항목`
+}
+
 export function MoveCopyDialog({
-  entry,
+  entries,
   mode,
   onClose,
 }: {
-  entry: FsEntry
+  entries: FsEntry[]
   mode: 'move' | 'copy'
   onClose: () => void
 }) {
@@ -87,19 +91,17 @@ export function MoveCopyDialog({
   const [dest, setDest] = useState('/')
   const [busy, setBusy] = useState(false)
   const label = mode === 'move' ? '이동' : '복사'
+  const paths = entries.map((e) => e.path)
 
   const submit = async () => {
     setBusy(true)
-    const ok =
-      mode === 'move'
-        ? await actions.move([entry.path], dest)
-        : await actions.copy([entry.path], dest)
+    const ok = mode === 'move' ? await actions.move(paths, dest) : await actions.copy(paths, dest)
     setBusy(false)
     if (ok) onClose()
   }
 
   return (
-    <Dialog title={`"${entry.name}" ${label}`} onClose={onClose}>
+    <Dialog title={`${labelFor(entries)} ${label}`} onClose={onClose}>
       <FolderPicker value={dest} onChange={setDest} />
       <div className="actions">
         <button type="button" className="btn ghost" onClick={onClose}>취소</button>
@@ -111,13 +113,13 @@ export function MoveCopyDialog({
   )
 }
 
-export function DeleteDialog({ entry, onClose }: { entry: FsEntry; onClose: () => void }) {
+export function DeleteDialog({ entries, onClose }: { entries: FsEntry[]; onClose: () => void }) {
   const actions = useFsActions()
   const [busy, setBusy] = useState(false)
 
   const submit = async () => {
     setBusy(true)
-    const ok = await actions.trashPaths([entry.path])
+    const ok = await actions.trashPaths(entries.map((e) => e.path))
     setBusy(false)
     if (ok) onClose()
   }
@@ -125,8 +127,9 @@ export function DeleteDialog({ entry, onClose }: { entry: FsEntry; onClose: () =
   return (
     <Dialog title="휴지통으로 이동" onClose={onClose}>
       <p>
-        <b>{entry.name}</b>{entry.isDir ? ' 폴더와 내용 전체를' : ' 파일을'} 휴지통으로 옮깁니다.
-        휴지통에서 복원할 수 있습니다.
+        <b>{labelFor(entries)}</b>
+        {entries.length === 1 && entries[0]!.isDir ? ' 폴더와 내용 전체를' : '을(를)'} 휴지통으로
+        옮깁니다. 휴지통에서 복원할 수 있습니다.
       </p>
       <div className="actions">
         <button type="button" className="btn ghost" onClick={onClose}>취소</button>

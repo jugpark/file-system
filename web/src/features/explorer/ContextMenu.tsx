@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { FsEntry } from '@fs/shared'
 import {
+  IconClock,
   IconCopy,
   IconDownload,
   IconInfo,
@@ -8,7 +9,7 @@ import {
   IconPencil,
   IconTrash,
 } from '../../components/icons'
-import { downloadUrl } from '../../lib/api'
+import { downloadUrl, zipUrl } from '../../lib/api'
 
 export interface MenuState {
   x: number
@@ -16,7 +17,7 @@ export interface MenuState {
   entry: FsEntry
 }
 
-/** UI 명세 §3.3 — 우클릭 컨텍스트 메뉴. 수정 계열은 write 권한일 때만 활성 */
+/** UI 명세 §3.3 + 확장(공유·버전·즐겨찾기). 수정 계열은 write 권한일 때만 활성 */
 export default function ContextMenu({
   state,
   onClose,
@@ -24,6 +25,10 @@ export default function ContextMenu({
   onRename,
   onMoveCopy,
   onDelete,
+  onShare,
+  onVersions,
+  onTogglePin,
+  isPinned,
 }: {
   state: MenuState
   onClose: () => void
@@ -31,6 +36,10 @@ export default function ContextMenu({
   onRename: (e: FsEntry) => void
   onMoveCopy: (e: FsEntry, mode: 'move' | 'copy') => void
   onDelete: (e: FsEntry) => void
+  onShare: (e: FsEntry) => void
+  onVersions: (e: FsEntry) => void
+  onTogglePin: (e: FsEntry) => void
+  isPinned: boolean
 }) {
   useEffect(() => {
     const close = () => onClose()
@@ -48,7 +57,7 @@ export default function ContextMenu({
   const { entry } = state
   const writable = entry.permission === 'write'
   const left = Math.min(state.x, window.innerWidth - 220)
-  const top = Math.min(state.y, window.innerHeight - 270)
+  const top = Math.min(state.y, window.innerHeight - 380)
   const via = (fn: () => void) => () => {
     onClose()
     fn()
@@ -67,12 +76,11 @@ export default function ContextMenu({
       </button>
       <button
         role="menuitem"
-        disabled={entry.isDir}
         onClick={via(() => {
-          window.location.href = downloadUrl(entry.path)
+          window.location.href = entry.isDir ? zipUrl([entry.path]) : downloadUrl(entry.path)
         })}
       >
-        <IconDownload className="ci" />다운로드
+        <IconDownload className="ci" />다운로드{entry.isDir && <span className="note">zip</span>}
       </button>
       <button role="menuitem" disabled={!writable} onClick={via(() => onRename(entry))}>
         <IconPencil className="ci" />이름 바꾸기<span className="note">수정 권한</span>
@@ -80,9 +88,19 @@ export default function ContextMenu({
       <button role="menuitem" onClick={via(() => onMoveCopy(entry, writable ? 'move' : 'copy'))}>
         <IconCopy className="ci" />이동 / 복사
       </button>
-      <button role="menuitem" onClick={onClose}>
-        <IconInfo className="ci" />정보 보기
+      <button role="menuitem" onClick={via(() => onTogglePin(entry))}>
+        <IconInfo className="ci" />{isPinned ? '즐겨찾기 제거' : '즐겨찾기 추가'}
       </button>
+      {!entry.isDir && (
+        <button role="menuitem" onClick={via(() => onVersions(entry))}>
+          <IconClock className="ci" />버전 기록
+        </button>
+      )}
+      {!entry.isDir && (
+        <button role="menuitem" disabled={!writable} onClick={via(() => onShare(entry))}>
+          <IconOpen className="ci" />공유 링크<span className="note">외부 공유</span>
+        </button>
+      )}
       <div className="div" role="separator" />
       <button className="del" role="menuitem" disabled={!writable} onClick={via(() => onDelete(entry))}>
         <IconTrash className="ci" />삭제<span className="note">휴지통으로</span>

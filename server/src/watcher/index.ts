@@ -2,6 +2,7 @@ import path from 'node:path'
 import chokidar from 'chokidar'
 import type { FastifyBaseLogger } from 'fastify'
 import { config } from '../config'
+import { emitChanged, parentDirOf } from '../events'
 import { indexRemove, indexUpsert } from '../fs/indexer'
 
 /**
@@ -36,10 +37,13 @@ export function startWatcher(log: FastifyBaseLogger): void {
     const rel = toWatchRel(config.storageRoot, absPath)
     if (!rel || !stats) return
     indexUpsert(rel, { isDir: stats.isDirectory(), size: stats.size, mtimeMs: stats.mtimeMs })
+    emitChanged(parentDirOf(rel)) // 외부 반입도 열려 있는 화면에 실시간 반영
   }
   const remove = (absPath: string) => {
     const rel = toWatchRel(config.storageRoot, absPath)
-    if (rel) indexRemove(rel)
+    if (!rel) return
+    indexRemove(rel)
+    emitChanged(parentDirOf(rel))
   }
 
   watcher

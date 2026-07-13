@@ -3,9 +3,11 @@ import type { ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import LoginPage from '../features/auth/LoginPage'
 import { useMe } from '../features/auth/useMe'
+import AdminPage from '../features/admin/AdminPage'
 import RecentPage from '../features/meta/RecentPage'
 import SearchPage from '../features/meta/SearchPage'
 import { OverlaysProvider } from '../features/overlays/Overlays'
+import SharesPage from '../features/share/SharesPage'
 import Shell from '../features/shell/Shell'
 import TrashPage from '../features/trash/TrashPage'
 
@@ -76,6 +78,22 @@ export default function App() {
               element={
                 <RequireAuth>
                   <RecentPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/shares"
+              element={
+                <RequireAuth>
+                  <SharesPage />
+                </RequireAuth>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <RequireAuth>
+                  <AdminPage />
                 </RequireAuth>
               }
             />

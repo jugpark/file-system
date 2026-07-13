@@ -1,0 +1,47 @@
+# 사내 파일 시스템 — 프로덕션 배포 (dev-spec §9, 확장 R1-1)
+#
+# 사용법:
+#   1) 레포 루트 .env 에 프로덕션 값 채우기 (.env.example 참고 — DISCORD_*, SESSION_SECRET 필수)
+#   2) 이 파일의 STORAGE_HOST_PATH를 실제 NAS 마운트 경로로
+#   3) Caddyfile의 도메인 수정 후: docker compose up -d --build
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ../.env
+    environment:
+      # 컨테이너 내부 고정 경로 (호스트 경로는 volumes에서 매핑)
+      STORAGE_ROOT: /data/storage
+      DATABASE_PATH: /data/db/app.db
+      PORT: "3000"
+    volumes:
+      # 왼쪽을 실제 NAS/스토리지 경로로 교체
+      - ${STORAGE_HOST_PATH:-./data/storage}:/data/storage
+      - ./data/db:/data/db
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+    # NAS가 NFS/SMB 마운트라 inotify가 안 통하면 .env에 WATCH_POLLING=true
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+volumes:
+  caddy-data:
+  caddy-config:

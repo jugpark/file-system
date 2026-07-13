@@ -134,7 +134,7 @@ button{font-family:var(--sans)}
 .m-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex:none}
 .toggle{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font-size:.75rem}
 .toggle button{all:unset;padding:5px 11px;color:var(--slate);cursor:pointer}
-.toggle button.on{background:var(--ink);color:#fff;font-weight:600}
+.toggle button.on{background:var(--ink);color:var(--paper);font-weight:600}
 .toggle button:disabled{cursor:not-allowed;opacity:.55}
 .m-count{font-family:var(--mono);font-size:.74rem;color:var(--slate-soft);margin-left:auto}
 
@@ -364,6 +364,79 @@ table.lv .who i{width:18px;height:18px;border-radius:50%;background:linear-gradi
   .sheet-grip{width:38px;height:4px;border-radius:999px;background:var(--line);margin:10px auto 0}
   .info.in-sheet{display:block;border-left:none;background:transparent}
 }
+
+/* ---------- 미리보기 모달 (R2) ---------- */
+.pv-overlay{position:fixed;inset:0;z-index:130;background:rgba(10,11,16,.78);display:grid;place-items:center;padding:20px}
+.pv-box{max-width:92vw;max-height:90vh;display:flex;flex-direction:column;background:var(--surface);border-radius:14px;overflow:hidden;box-shadow:0 30px 80px -30px rgba(0,0,0,.6)}
+.pv-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--line-soft);background:var(--surface-2)}
+.pv-name{font-weight:600;font-size:.88rem;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-meta{font-family:var(--mono);font-size:.72rem;color:var(--slate-soft);flex:none}
+.pv-dl{margin-left:auto;color:var(--slate);display:inline-flex;padding:5px;border-radius:6px}
+.pv-dl:hover{background:var(--surface);color:var(--ink)}
+.pv-close{all:unset;cursor:pointer;color:var(--slate-soft);padding:5px 8px;border-radius:6px;font-size:.85rem}
+.pv-close:hover{background:var(--surface);color:var(--ink)}
+.pv-body{min-width:320px;min-height:120px;display:grid;place-items:center;overflow:auto;background:var(--surface)}
+.pv-img{max-width:90vw;max-height:78vh;display:block;object-fit:contain}
+.pv-frame{width:min(90vw,900px);height:78vh;border:none}
+.pv-media{max-width:90vw;max-height:78vh}
+.pv-audio{display:flex;flex-direction:column;align-items:center;gap:16px;padding:34px;color:var(--slate)}
+.pv-text{margin:0;padding:18px;max-width:min(90vw,860px);max-height:78vh;overflow:auto;font-family:var(--mono);font-size:.8rem;line-height:1.6;white-space:pre-wrap;word-break:break-all;justify-self:stretch}
+
+/* ---------- 다중 선택 툴바 (R2) ---------- */
+.selbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.sel-count{font-size:.8rem;font-weight:600;color:var(--blurple-ink);background:var(--blurple-soft);padding:5px 10px;border-radius:999px}
+.btn.sm{padding:6px 10px;font-size:.76rem;display:inline-flex;align-items:center;gap:5px}
+.btn.danger-text{color:var(--danger)}
+
+/* ---------- 디스크 게이지 (R3) ---------- */
+.lnb-usage{margin-top:16px;border-top:1px dashed var(--line);padding-top:12px;font-family:var(--mono);font-size:.68rem;color:var(--slate-soft)}
+.gauge{height:6px;border-radius:999px;background:var(--line-soft);overflow:hidden;margin-bottom:7px}
+.gauge i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#7B84FF,var(--blurple))}
+.gauge.big{height:10px;max-width:420px}
+
+/* ---------- 관리/공유 페이지 ---------- */
+.page-h{font-size:1.02rem;font-weight:700;margin:0 0 12px;letter-spacing:-.01em}
+.admin-section{margin-bottom:38px}
+.form-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.txt.sm{width:auto;padding:7px 10px;font-size:.8rem}
+select.txt{appearance:auto;cursor:pointer}
+
+/* 버전 목록 */
+.ver-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto}
+.ver-row{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:.8rem}
+.ver-time{font-weight:600}
+.ver-size{font-family:var(--mono);font-size:.72rem;color:var(--slate-soft);margin-right:auto}
+
+/* 즐겨찾기 (LNB) */
+.pin-name{display:flex;align-items:center;gap:7px}
+.pin-name svg{color:var(--blurple);flex:none}
+
+/* ---------- 다크 모드 (R4) — 명세 토큰의 다크 팔레트 ---------- */
+[data-theme="dark"]{
+  --paper:#0F1116;
+  --surface:#161922;
+  --surface-2:#1C2029;
+  --ink:#E9EBF4;
+  --slate:#A8AEBF;
+  --slate-soft:#7C8394;
+  --line:#2A2F3C;
+  --line-soft:#232833;
+  --blurple:#6975F5;
+  --blurple-ink:#AEB5FF;
+  --blurple-soft:#252A4E;
+  --grant:#3DBE93;
+  --grant-soft:#15342A;
+  --lock:#D3A557;
+  --lock-soft:#3A3014;
+  --danger:#E57370;
+}
+[data-theme="dark"] .sk .b,
+[data-theme="dark"] .sk .sq{background:linear-gradient(90deg,#232833 25%,#2A2F3C 37%,#232833 63%);background-size:400% 100%}
+[data-theme="dark"] .gthumb,
+[data-theme="dark"] .info .thumb{background:linear-gradient(135deg,#242A3D,#1A1E2B)}
+[data-theme="dark"] .login-stage{background:linear-gradient(160deg,#171B2C,#111319)}
+[data-theme="dark"] .ctx button.del:hover:not(:disabled){background:#3A1D1C}
+[data-theme="dark"] .login-error{background:#3A1D1C}
 
 /* 새로 만들기 팝업 (LNB) */
 .new-wrap{position:relative}

@@ -41,6 +41,8 @@ export interface MeResponse {
   roles: string[]
   /** 이 유저의 개인 공간 경로 (/home/{id}) */
   homePath: string
+  /** ADMIN_ROLE_ID 보유자 — 전 경로 접근(남의 home은 read), 관리 페이지 노출 */
+  isAdmin: boolean
 }
 
 export interface ApiErrorBody {
@@ -49,7 +51,18 @@ export interface ApiErrorBody {
 
 // ─── 쓰기 작업 (M2) ─────────────────────────────────────────
 
-export type ActivityAction = 'upload' | 'mkdir' | 'rename' | 'move' | 'copy' | 'trash' | 'restore'
+export type ActivityAction =
+  | 'upload'
+  | 'mkdir'
+  | 'rename'
+  | 'move'
+  | 'copy'
+  | 'trash'
+  | 'restore'
+  | 'acl_change'
+  | 'share_create'
+  | 'share_revoke'
+  | 'version_restore'
 
 export interface UploadResponse {
   /** 실제 저장된 경로 (이름 충돌 시 " (1)" 붙은 최종본) */
@@ -145,4 +158,79 @@ export interface ActivityItem {
 export interface ActivityResponse {
   path: string
   items: ActivityItem[]
+}
+
+// ─── 확장 스펙 R1~R4 ────────────────────────────────────────
+
+export interface AclRuleDto {
+  id: number
+  pathPrefix: string
+  roleId: string
+  roleName?: string
+  permission: 'read' | 'write'
+  note: string | null
+}
+
+export interface RoleDto {
+  id: string
+  name: string
+}
+
+export interface UsageResponse {
+  totalBytes: number
+  freeBytes: number
+  /** admin 전용 — 최상위 폴더별 사용량 (파일 합계) */
+  folders?: Array<{ path: string; bytes: number }>
+}
+
+export interface AdminActivityItem extends ActivityItem {
+  path: string
+}
+
+export interface AdminActivityResponse {
+  items: AdminActivityItem[]
+}
+
+export interface CreateShareBody {
+  path: string
+  /** 만료까지 일수 (1/7/30) */
+  expiresDays: number
+}
+
+export interface ShareLinkDto {
+  token: string
+  path: string
+  name: string
+  /** 전체 공유 URL */
+  url: string
+  createdAt: number
+  expiresAt: number
+  downloadCount: number
+  expired: boolean
+}
+
+export interface ShareListResponse {
+  links: ShareLinkDto[]
+}
+
+export interface VersionDto {
+  /** .versions 안의 파일명 = "{ts}_{원본이름}" */
+  id: string
+  mtime: number
+  size: number
+}
+
+export interface VersionListResponse {
+  path: string
+  versions: VersionDto[]
+}
+
+export interface PinDto {
+  path: string
+  name: string
+  isDir: boolean
+}
+
+export interface PinListResponse {
+  pins: PinDto[]
 }

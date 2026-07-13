@@ -9,6 +9,7 @@ export interface SessionUser {
   username: string
   avatarUrl: string | null
   roles: string[]
+  isAdmin: boolean
 }
 
 export function upsertUser(u: { id: string; username: string; avatarUrl: string | null }): void {

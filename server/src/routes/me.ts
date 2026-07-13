@@ -10,6 +10,7 @@ export default async function meRoutes(app: FastifyInstance) {
       avatarUrl: u.avatarUrl,
       roles: u.roles,
       homePath: `/home/${u.id}`,
+      isAdmin: u.isAdmin,
     }
   })
 }

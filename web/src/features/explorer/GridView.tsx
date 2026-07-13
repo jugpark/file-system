@@ -10,16 +10,19 @@ import { thumbnailUrl } from '../../lib/api'
 export default function GridView({
   entries,
   selected,
+  checkedPaths,
   onSelect,
   onOpen,
   onMenu,
 }: {
   entries: FsEntry[]
   selected: FsEntry | null
-  onSelect: (e: FsEntry) => void
+  checkedPaths: Set<string>
+  onSelect: (e: FsEntry, ev: MouseEvent) => void
   onOpen: (e: FsEntry) => void
   onMenu: (e: FsEntry, ev: MouseEvent) => void
 }) {
+  void selected
   return (
     <div className="gcards">
       {entries.map((entry) => {
@@ -28,15 +31,11 @@ export default function GridView({
           <div
             key={entry.path}
             className={
-              'gcard' + (selected?.path === entry.path ? ' sel' : '') + (readonlyDir ? ' ro' : '')
+              'gcard' + (checkedPaths.has(entry.path) ? ' sel' : '') + (readonlyDir ? ' ro' : '')
             }
-            onClick={() => onSelect(entry)}
+            onClick={(ev) => onSelect(entry, ev)}
             onDoubleClick={() => onOpen(entry)}
-            onContextMenu={(ev) => {
-              ev.preventDefault()
-              onSelect(entry)
-              onMenu(entry, ev)
-            }}
+            onContextMenu={(ev) => onMenu(entry, ev)}
           >
             <div className="gthumb">
               {!entry.isDir && isImageName(entry.name) ? (

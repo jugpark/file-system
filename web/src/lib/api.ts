@@ -43,3 +43,9 @@ export function downloadUrl(path: string): string {
 export function thumbnailUrl(path: string, width = 240): string {
   return `/api/fs/thumbnail?path=${encodeURIComponent(path)}&w=${width}`
 }
+
+export function zipUrl(paths: string[]): string {
+  const params = new URLSearchParams()
+  for (const p of paths) params.append('paths', p)
+  return `/api/fs/download-zip?${params.toString()}`
+}

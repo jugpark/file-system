@@ -1,0 +1,9 @@
+# 도메인을 실제 값으로 교체 (BASE_URL과 일치해야 OAuth redirect가 동작)
+# 사내 IP만 쓸 경우: "files.example.com" 대신 ":443" + tls internal
+files.example.com {
+	encode gzip
+	reverse_proxy app:3000 {
+		# SSE(/api/events)는 버퍼링 없이 통과
+		flush_interval -1
+	}
+}

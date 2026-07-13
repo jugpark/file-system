@@ -2,7 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import Fastify from 'fastify'
 import fastifyCookie from '@fastify/cookie'
+import fastifyHelmet from '@fastify/helmet'
 import fastifyMultipart from '@fastify/multipart'
+import fastifyRateLimit from '@fastify/rate-limit'
 import fastifyStatic from '@fastify/static'
 import { ROLE_CACHE_TTL_MS, ROLE_STALE_MAX_MS, SESSION_COOKIE } from '@fs/shared'
 import { config } from './config'
@@ -11,17 +13,45 @@ import { deleteSession, getSessionWithUser, updateSessionRoles } from './auth/se
 import { PathError } from './fs/safe-path'
 import { fullScan } from './fs/indexer'
 import { purgeTrash } from './fs/purge'
+import { notifyDiskWarning } from './notify'
+import adminRoutes, { diskUsage } from './routes/admin'
 import authRoutes from './routes/auth'
+import eventsRoutes from './routes/events'
 import fsRoutes from './routes/fs'
 import fsWriteRoutes from './routes/fs-write'
 import healthRoutes from './routes/health'
 import meRoutes from './routes/me'
 import metaRoutes from './routes/meta'
+import pinsRoutes from './routes/pins'
+import shareRoutes from './routes/share'
 import thumbnailRoutes from './routes/thumbnail'
+import versionsRoutes from './routes/versions'
 import { errorBody } from './types'
 import { startWatcher } from './watcher'
 
 const app = Fastify({ logger: true })
+
+// ── R1 보안 하드닝 ──
+await app.register(fastifyHelmet, {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net', 'https://fonts.googleapis.com'],
+      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'https://cdn.jsdelivr.net'],
+      imgSrc: ["'self'", 'data:', 'https://cdn.discordapp.com'],
+      mediaSrc: ["'self'"],
+      connectSrc: ["'self'"],
+      frameSrc: ["'self'"], // PDF 미리보기 iframe
+      objectSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+})
+await app.register(fastifyRateLimit, {
+  max: 300,
+  timeWindow: '1 minute',
+  // 로그인/공유 다운로드 등 민감 라우트는 라우트별 config로 더 엄격하게 건다
+})
 
 await app.register(fastifyCookie, { secret: config.sessionSecret })
 await app.register(fastifyMultipart, {
@@ -81,6 +111,7 @@ app.addHook('onRequest', async (req, reply) => {
     username: found.user.username,
     avatarUrl: found.user.avatarUrl,
     roles,
+    isAdmin: config.adminRoleId !== '' && roles.includes(config.adminRoleId),
   }
 })
 
@@ -98,6 +129,11 @@ await app.register(fsRoutes)
 await app.register(fsWriteRoutes)
 await app.register(metaRoutes)
 await app.register(thumbnailRoutes)
+await app.register(versionsRoutes)
+await app.register(shareRoutes)
+await app.register(pinsRoutes)
+await app.register(adminRoutes)
+await app.register(eventsRoutes)
 await app.register(healthRoutes)
 
 // ── SPA 정적 서빙 (프로덕션: web 빌드 결과물이 server/public 에 있음) ──
@@ -133,15 +169,21 @@ if (config.rescanMinutes > 0) {
   app.log.info(`fs_index 주기 재스캔: ${config.rescanMinutes}분 간격`)
 }
 
-// 휴지통 자동 비우기 — 기동 시 1회 + 매일
-if (config.trashRetentionDays > 0) {
-  const runPurge = async () => {
+// 일일 유지보수 — 휴지통 자동 비우기 + 디스크 여유 경고 (기동 시 1회 + 매일)
+const dailyMaintenance = async () => {
+  if (config.trashRetentionDays > 0) {
     const n = await purgeTrash(config.trashRetentionDays)
     if (n > 0) app.log.info(`휴지통 자동 비우기: ${n}개 영구 삭제 (보존 ${config.trashRetentionDays}일)`)
   }
-  runPurge().catch((err) => app.log.warn({ err }, '휴지통 비우기 실패'))
-  const purgeTimer = setInterval(() => {
-    runPurge().catch((err) => app.log.warn({ err }, '휴지통 비우기 실패'))
-  }, 24 * 60 * 60 * 1000)
-  purgeTimer.unref()
+  const { totalBytes, freeBytes } = await diskUsage()
+  const freePct = (freeBytes / totalBytes) * 100
+  if (freePct < 10) {
+    app.log.warn(`스토리지 여유 ${freePct.toFixed(1)}%`)
+    notifyDiskWarning(freePct)
+  }
 }
+dailyMaintenance().catch((err) => app.log.warn({ err }, '일일 유지보수 실패'))
+const dailyTimer = setInterval(() => {
+  dailyMaintenance().catch((err) => app.log.warn({ err }, '일일 유지보수 실패'))
+}, 24 * 60 * 60 * 1000)
+dailyTimer.unref()

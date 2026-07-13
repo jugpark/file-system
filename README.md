@@ -60,9 +60,23 @@ Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callb
       패널→바텀 시트, <720px LNB→드로어), 읽기 전용 자물쇠 시각화, 휴지통 자동 비우기
       (`TRASH_RETENTION_DAYS`, 기본 30일)
 
-**M1~M4 전체 완료.** 이후 확장은 `../file-system-extended-spec.md` 참고 —
-R1(배포 필수: Docker/백업/하드닝/admin) → R2(미리보기·다중선택·zip·폴더 업로드·
-Discord 알림·SSE) → R3(ACL UI·용량 대시보드·감사 뷰) → R4(수요 확인 후).
+**M1~M4 + 확장 R1~R4 전체 완료** (`../file-system-extended-spec.md`):
+
+- **R1** — `docker/`(Dockerfile·compose·Caddyfile), `deploy/backup.sh`(sqlite .backup+rsync 증분),
+  helmet(CSP)+rate-limit(로그인 10/분), **admin role**(`ADMIN_ROLE_ID` — 전 경로 접근, 남의 home은 read)
+- **R2** — 파일 미리보기(이미지/PDF/동영상/오디오/텍스트, **html·svg는 inline 금지**),
+  다중 선택(Ctrl/Shift)+일괄 이동·복사·삭제+**zip 다운로드**(폴더 포함), **폴더째 업로드**(DnD·선택 모두),
+  Discord 웹훅 알림(5분 디바운스), **SSE 실시간 갱신**(/api/events)
+- **R3** — `/admin` 관리 페이지(ACL 규칙 CRUD + Discord role 목록, 사용량 대시보드, 감사 로그),
+  사이드바 디스크 게이지, 디스크 여유 10% 미만 웹훅 경고
+- **R4** — 공유 링크(무인증 다운로드, 만료 1/7/30일, `/shares` 관리), 버전 보관(같은 이름
+  덮어쓰기 시 최근 5개 자동 보관+복원), 다크 모드, 즐겨찾기(핀), 키보드 단축키(Del/F2/Enter/Esc/방향키)
+
+미구현으로 남긴 것: **문서 내용 검색**(extended-spec R4 — 추출 파이프라인 유지비 때문에
+실수요 확인 전 보류), 오피스 동시 편집·WebDAV 등 비권장 목록.
+
+> ⚠ 같은 이름 업로드의 의미가 바뀌었다: " (1)" 회피 대신 **기존본을 버전으로 보관하고
+> 이름을 승계**한다(파일↔폴더 충돌만 " (1)"). 이전 버전은 우클릭 → '버전 기록'.
 
 > **검색 구현 노트**: dev-spec의 FTS5 대신 `name_search`(NFC·소문자) LIKE 스캔.
 > 10~20인 NAS 규모에서는 FTS 동기화 복잡도가 이득보다 크다 — 코퍼스가 커지면 교체.

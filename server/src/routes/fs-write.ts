@@ -23,10 +23,13 @@ import { loadAclRules } from '../acl/store'
 import { config } from '../config'
 import { db } from '../db'
 import { trash, users } from '../db/schema'
+import { emitChanged, parentDirOf } from '../events'
 import { indexMovePrefix, indexRemove, indexUpsert } from '../fs/indexer'
 import { deleteMetaPrefix, moveMetaPrefix, recordActivity, setFileMeta } from '../fs/meta'
 import { resolveCollision, resolveRestoreName, validateEntryName } from '../fs/names'
 import { PathError, resolveAbs, toRelPath } from '../fs/safe-path'
+import { stashVersion } from '../fs/versions'
+import { notifyFileActivity } from '../notify'
 import type { SessionUser } from '../auth/session'
 import { errorBody } from '../types'
 
@@ -73,6 +76,28 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
       return reply.code(400).send(errorBody('NO_FILE', '업로드할 파일이 없습니다'))
     }
     const name = validateEntryName(data.filename)
+
+    // 폴더째 업로드: relPath 필드(파일보다 먼저 전송됨)의 하위 경로를 만들어 그 안에 저장
+    let dirRel = rel
+    let dirAbs = absDir
+    const relPathField = data.fields['relPath'] as { value?: unknown } | undefined
+    if (typeof relPathField?.value === 'string' && relPathField.value.length > 0) {
+      const segs = relPathField.value.split('/').filter(Boolean).map(validateEntryName)
+      if (segs.length > 20) throw new PathError('폴더 깊이가 너무 깊습니다')
+      for (const seg of segs) {
+        dirRel = childPath(dirRel, seg)
+        dirAbs = path.join(dirAbs, seg)
+        const existed = await fsp.stat(dirAbs).catch(() => null)
+        if (existed && !existed.isDirectory()) {
+          throw new PathError(`같은 이름의 파일이 있어 폴더를 만들 수 없습니다: ${seg}`, 409)
+        }
+        if (!existed) {
+          await fsp.mkdir(dirAbs)
+          indexUpsert(dirRel, { isDir: true, size: 0, mtimeMs: Date.now() })
+        }
+      }
+    }
+
     const tmpPath = path.join(config.tmpDir, crypto.randomUUID())
     try {
       await pipeline(data.file, createWriteStream(tmpPath))
@@ -80,12 +105,26 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
         throw new PathError(`파일이 최대 크기(${config.maxUploadMb}MB)를 초과했습니다`, 413)
       }
       const size = (await fsp.stat(tmpPath)).size
-      const finalName = await resolveCollision(absDir, name)
-      const destRel = childPath(rel, finalName)
-      await fsp.rename(tmpPath, path.join(absDir, finalName))
+
+      // 같은 이름 파일이 있으면 기존본을 버전으로 보관하고 이름을 승계 (R4 버전 보관).
+      // 같은 이름 폴더면 이름을 바꿔 회피
+      let finalName = name
+      let replaced = false
+      const existing = await fsp.stat(path.join(dirAbs, name)).catch(() => null)
+      if (existing?.isFile()) {
+        await stashVersion(childPath(dirRel, name), path.join(dirAbs, name))
+        replaced = true
+      } else if (existing) {
+        finalName = await resolveCollision(dirAbs, name)
+      }
+
+      const destRel = childPath(dirRel, finalName)
+      await fsp.rename(tmpPath, path.join(dirAbs, finalName))
       setFileMeta(destRel, user.id)
-      recordActivity('upload', destRel, user.id, { size })
+      recordActivity('upload', destRel, user.id, { size, ...(replaced ? { replaced: true } : {}) })
       indexUpsert(destRel, { isDir: false, size, mtimeMs: Date.now() })
+      emitChanged(dirRel)
+      notifyFileActivity('upload', user.username, destRel)
       const res: UploadResponse = { path: destRel, name: finalName }
       return res
     } catch (err) {
@@ -111,6 +150,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
     await fsp.mkdir(destAbs)
     recordActivity('mkdir', destRel, user.id)
     indexUpsert(destRel, { isDir: true, size: 0, mtimeMs: Date.now() })
+    emitChanged(rel)
     return { path: destRel }
   })
 
@@ -139,6 +179,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
     moveMetaPrefix(rel, destRel)
     indexMovePrefix(rel, destRel)
     recordActivity('rename', destRel, user.id, { from: rel })
+    emitChanged(parentRel)
     return { path: destRel }
   })
 
@@ -205,6 +246,8 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
             })
           }
         }
+        emitChanged(destRel)
+        if (mode === 'move') emitChanged(parentOf(srcRel))
         results.push({ path: srcRel, ok: true, newPath: newRel })
       } catch (err) {
         results.push({
@@ -256,6 +299,8 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
         deleteMetaPrefix(rel)
         indexRemove(rel)
         recordActivity('trash', rel, user.id, { trashId: id })
+        emitChanged(parentOf(rel))
+        notifyFileActivity('trash', user.username, rel)
         results.push({ path: rel, ok: true })
       } catch (err) {
         results.push({
@@ -340,6 +385,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
             mtimeMs: restoredStat.mtimeMs,
           })
         }
+        emitChanged(parentRel)
         results.push({ path: row.originalPath, ok: true, newPath: destRel })
       } catch (err) {
         results.push({

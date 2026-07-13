@@ -23,9 +23,15 @@ interface UploadItem {
   error?: string
 }
 
+export interface UploadInput {
+  file: File
+  /** 폴더째 업로드 시 대상 폴더 기준 하위 경로 */
+  relDir?: string
+}
+
 interface OverlaysApi {
   showNotice: (msg: string) => void
-  enqueueUploads: (files: File[], dirPath: string) => void
+  enqueueUploads: (items: Array<File | UploadInput>, dirPath: string) => void
 }
 
 const Ctx = createContext<OverlaysApi | null>(null)
@@ -58,8 +64,9 @@ export function OverlaysProvider({ children }: { children: ReactNode }) {
     setTimeout(() => setUploads((items) => items.filter((it) => it.id !== id)), delay)
 
   const enqueueUploads = useCallback(
-    (files: File[], dirPath: string) => {
-      for (const file of files) {
+    (inputs: Array<File | UploadInput>, dirPath: string) => {
+      for (const input of inputs) {
+        const { file, relDir } = input instanceof File ? { file: input, relDir: undefined } : input
         const id = crypto.randomUUID()
         setUploads((items) => [
           ...items,
@@ -93,6 +100,7 @@ export function OverlaysProvider({ children }: { children: ReactNode }) {
           drop(id, 5000)
         }
         const fd = new FormData()
+        if (relDir) fd.append('relPath', relDir) // 반드시 file보다 먼저 (multipart 순서)
         fd.append('file', file)
         xhr.send(fd)
       }

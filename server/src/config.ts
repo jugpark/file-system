@@ -50,6 +50,12 @@ export const config = {
   rescanMinutes: Number(env.INDEX_RESCAN_MIN ?? 10),
   /** 휴지통 보존 일수 — 초과분은 매일 영구 삭제. 0=자동 비우기 끔 */
   trashRetentionDays: Number(env.TRASH_RETENTION_DAYS ?? 30),
+  /** 이 Discord role 보유자는 admin — 전 경로 접근(남의 home은 read), 관리 API 사용 */
+  adminRoleId: env.ADMIN_ROLE_ID ?? '',
+  /** 설정 시 공유 폴더 업로드/삭제·디스크 경고를 이 웹훅으로 알림 */
+  webhookUrl: env.DISCORD_WEBHOOK_URL ?? '',
+  /** 같은 이름 덮어쓰기 시 이전 버전 보관소 */
+  versionsDir: path.resolve(env.STORAGE_ROOT ?? './data/storage', '.versions'),
   /** 썸네일 디스크 캐시 (스토리지가 아니라 DB 옆에 둔다) */
   thumbsDir: path.resolve(path.dirname(path.resolve(env.DATABASE_PATH ?? './data/app.db')), 'thumbs'),
   discord,
@@ -66,3 +72,4 @@ fs.mkdirSync(config.tmpDir, { recursive: true })
 fs.mkdirSync(config.trashDir, { recursive: true })
 fs.mkdirSync(path.dirname(config.databasePath), { recursive: true })
 fs.mkdirSync(config.thumbsDir, { recursive: true })
+fs.mkdirSync(config.versionsDir, { recursive: true })

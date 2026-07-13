@@ -24,8 +24,11 @@ function ensureHomeDir(userId: string) {
   fs.mkdirSync(resolveAbs(config.storageRoot, `/home/${userId}`), { recursive: true })
 }
 
+/** 로그인 계열은 봇 스캔 대상 — 전역(300/분)보다 엄격하게 */
+const STRICT_RATE = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }
+
 export default async function authRoutes(app: FastifyInstance) {
-  app.get('/api/auth/login', async (req, reply) => {
+  app.get('/api/auth/login', STRICT_RATE, async (req, reply) => {
     if (config.devAuth) {
       // Discord 미설정 개발 모드: 가짜 유저로 즉시 로그인
       const dev = config.devUser
@@ -46,7 +49,7 @@ export default async function authRoutes(app: FastifyInstance) {
     return reply.redirect(authorizeUrl(state))
   })
 
-  app.get('/api/auth/callback', async (req, reply) => {
+  app.get('/api/auth/callback', STRICT_RATE, async (req, reply) => {
     const { code, state } = req.query as { code?: string; state?: string }
     const rawState = req.cookies['oauth_state']
     const saved = rawState ? req.unsignCookie(rawState) : null

@@ -19,6 +19,8 @@ export interface AclRule {
 export interface AclUser {
   id: string
   roles: string[]
+  /** ADMIN_ROLE_ID 보유자 — 전 경로 write, 단 남의 home은 read까지만 */
+  isAdmin?: boolean
 }
 
 /** '/a/b' → ['a','b']. 비교는 항상 NFC로 정규화해서 수행 */
@@ -38,9 +40,11 @@ export function resolvePermission(user: AclUser, relPath: string, rules: AclRule
 
   if (segs[0] === 'home') {
     if (segs[1] === user.id) return 'write'
-    // 남의 개인 공간은 ACL로도 열 수 없다. '/home' 자체는 아래 ACL 판정으로
-    if (segs.length >= 2) return 'none'
+    // 남의 개인 공간은 ACL로도 열 수 없다. admin은 read까지만(개인 공간 존중)
+    if (segs.length >= 2) return user.isAdmin ? 'read' : 'none'
   }
+
+  if (user.isAdmin) return 'write'
 
   let best: { depth: number; perm: 'read' | 'write' } | null = null
   for (const rule of rules) {
@@ -61,6 +65,7 @@ export function resolvePermission(user: AclUser, relPath: string, rules: AclRule
  * (예: /design/shared에만 권한이 있어도 / 와 /design 은 탐색 가능해야 한다)
  */
 export function canSee(user: AclUser, relPath: string, rules: AclRule[]): boolean {
+  if (user.isAdmin) return true
   if (resolvePermission(user, relPath, rules) !== 'none') return true
   const segs = pathSegments(relPath)
   // 자기 home으로 가는 조상 경로 ('/', '/home')

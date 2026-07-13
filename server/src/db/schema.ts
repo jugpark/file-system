@@ -31,9 +31,27 @@ export const activityLog = sqliteTable('activity_log', {
   path: text('path').notNull(),
   actorId: text('actor_id').notNull(),
   action: text('action', {
-    enum: ['upload', 'mkdir', 'rename', 'move', 'copy', 'trash', 'restore'],
+    enum: [
+      'upload', 'mkdir', 'rename', 'move', 'copy', 'trash', 'restore',
+      'acl_change', 'share_create', 'share_revoke', 'version_restore',
+    ],
   }).notNull(),
   detailJson: text('detail_json'),
+  createdAt: integer('created_at').notNull(),
+})
+
+export const shareLinks = sqliteTable('share_links', {
+  token: text('token').primaryKey(),
+  path: text('path').notNull(),
+  createdBy: text('created_by').notNull(),
+  createdAt: integer('created_at').notNull(),
+  expiresAt: integer('expires_at').notNull(),
+  downloadCount: integer('download_count').notNull().default(0),
+})
+
+export const pinnedPaths = sqliteTable('pinned_paths', {
+  userId: text('user_id').notNull(),
+  path: text('path').notNull(),
   createdAt: integer('created_at').notNull(),
 })
 

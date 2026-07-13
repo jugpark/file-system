@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import type { MeResponse } from '@fs/shared'
 import Sidebar from '../sidebar/Sidebar'
+import RealtimeSync from './RealtimeSync'
 import TopBar from './TopBar'
 
 /**
@@ -27,6 +28,7 @@ export default function AppLayout({
 
   return (
     <div className="app">
+      <RealtimeSync />
       <TopBar path={path ?? '/'} me={me} title={title} onMenu={() => setDrawerOpen(true)} />
       <div className="app-body">
         <Sidebar path={path} me={me} />
