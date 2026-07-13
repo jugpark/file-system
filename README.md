@@ -18,14 +18,25 @@ web/      Vite + React SPA — 3단 레이아웃 탐색기
 
 ## 빠른 시작 (개발)
 
+요구사항: **Node 20 이상**(24까지 확인됨) + pnpm(`corepack enable`).
+네이티브 모듈(better-sqlite3·sharp)의 빌드 스크립트 허용은 루트 package.json의
+`pnpm.onlyBuiltDependencies`에 이미 설정돼 있다 — pnpm 10에서도 추가 조치 불필요.
+
 ```bash
 pnpm install
 pnpm seed:dev     # 샘플 폴더/파일 + ACL 시드 (dev 전용)
-pnpm dev          # server :3000 + web :5173 동시 실행
+pnpm dev          # server :3000 + web :6001 동시 실행
 ```
 
-→ http://localhost:5173 접속. **Discord 미설정 상태에서는 dev auth 모드**로
+→ **http://localhost:6001** 접속. **Discord 미설정 상태에서는 dev auth 모드**로
 동작해 [Discord로 로그인] 버튼이 가짜 유저(`DEV_USERNAME`, roles=`DEV_ROLES`)로 로그인한다.
+
+관리자 화면(/admin)까지 보려면 레포 루트에 `.env`를 만들고:
+
+```
+ADMIN_ROLE_ID=admin-role
+DEV_ROLES=design,admin-role
+```
 
 실제 Discord 연동: `.env.example`을 `.env`로 복사해 `DISCORD_*` 4개를 채우면 된다.
 Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callback` 등록,
