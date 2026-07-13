@@ -1,13 +1,23 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import type { MeResponse } from '@fs/shared'
-import { IconFolder, IconLogout, IconSearch } from '../../components/icons'
+import {
+  IconChevronDown,
+  IconFolder,
+  IconLockOpen,
+  IconLogout,
+  IconMoon,
+  IconOpen,
+  IconSearch,
+  IconSun,
+  IconTrash,
+} from '../../components/icons'
 import { api } from '../../lib/api'
 import { browseTo } from '../../lib/paths'
 import { getTheme, toggleTheme, type Theme } from '../../lib/theme'
 
-/** UI 명세 §02-B — GNB: breadcrumb · 검색 · 유저 프로필. title이 있으면 breadcrumb 대신 표시 */
+/** UI 명세 §02-B — GNB: breadcrumb · 검색 · 프로필 메뉴. title이 있으면 breadcrumb 대신 표시 */
 export default function TopBar({
   path,
   me,
@@ -20,19 +30,12 @@ export default function TopBar({
   onMenu?: () => void
 }) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [params] = useSearchParams()
   const [query, setQuery] = useState(params.get('q') ?? '')
 
   const submitSearch = () => {
     const q = query.trim()
     if (q) navigate(`/search?q=${encodeURIComponent(q)}`)
-  }
-
-  const logout = async () => {
-    await api<void>('/api/auth/logout', { method: 'POST' })
-    queryClient.clear()
-    navigate('/login')
   }
 
   const segs = path.split('/').filter(Boolean)
@@ -90,43 +93,101 @@ export default function TopBar({
         />
       </label>
 
-      <ThemeToggle />
+      <ProfileMenu me={me} />
+    </header>
+  )
+}
 
-      <div className="gnb-user">
+/** 프로필 드롭다운 — 빠른 이동·테마·로그아웃 */
+function ProfileMenu({ me }: { me: MeResponse }) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [open, setOpen] = useState(false)
+  const [theme, setTheme] = useState<Theme>(getTheme())
+
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const go = (to: string) => {
+    setOpen(false)
+    navigate(to)
+  }
+
+  const logout = async () => {
+    await api<void>('/api/auth/logout', { method: 'POST' })
+    queryClient.clear()
+    navigate('/login')
+  }
+
+  return (
+    <div className="profile-wrap" ref={wrapRef}>
+      <button
+        className="profile-btn"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
         {me.avatarUrl ? (
           <img className="ava" src={me.avatarUrl} alt="" />
         ) : (
           <span className="ava" aria-hidden="true" />
         )}
         <span className="name">@{me.username}</span>
-        <button className="btn-logout" onClick={logout} title="로그아웃" aria-label="로그아웃">
-          <IconLogout width={15} height={15} />
-        </button>
-      </div>
-    </header>
-  )
-}
+        <IconChevronDown width={12} height={12} className="chev" />
+      </button>
 
-/** R4 다크 모드 토글 */
-function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(getTheme())
-  return (
-    <button
-      className="btn-logout"
-      onClick={() => setTheme(toggleTheme())}
-      title={theme === 'dark' ? '라이트 모드' : '다크 모드'}
-      aria-label="테마 전환"
-    >
-      {theme === 'dark' ? (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" width={15} height={15}>
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-        </svg>
-      ) : (
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={15} height={15}>
-          <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-        </svg>
+      {open && (
+        <div className="ctx profile-pop" role="menu" aria-label="프로필 메뉴">
+          <div className="pop-head">
+            {me.avatarUrl ? (
+              <img className="ava big" src={me.avatarUrl} alt="" />
+            ) : (
+              <span className="ava big" aria-hidden="true" />
+            )}
+            <span className="who-col">
+              <b>@{me.username}</b>
+              {me.isAdmin && <span className="tag-perm ed mini">관리자</span>}
+            </span>
+          </div>
+          <div className="div" role="separator" />
+          <button role="menuitem" onClick={() => go(browseTo(me.homeExists ? me.homePath : '/'))}>
+            <IconFolder className="ci" />{me.homeExists ? '내 작업 공간' : '전체 보기'}
+          </button>
+          <button role="menuitem" onClick={() => go('/shares')}>
+            <IconOpen className="ci" />공유 링크 관리
+          </button>
+          <button role="menuitem" onClick={() => go('/trash')}>
+            <IconTrash className="ci" />휴지통
+          </button>
+          {me.isAdmin && (
+            <button role="menuitem" onClick={() => go('/admin')}>
+              <IconLockOpen className="ci" />관리
+            </button>
+          )}
+          <div className="div" role="separator" />
+          <button role="menuitem" onClick={() => setTheme(toggleTheme())}>
+            {theme === 'dark' ? <IconSun className="ci" /> : <IconMoon className="ci" />}
+            {theme === 'dark' ? '라이트 모드' : '다크 모드'}
+            <span className="note">테마</span>
+          </button>
+          <div className="div" role="separator" />
+          <button className="del" role="menuitem" onClick={logout}>
+            <IconLogout className="ci" />로그아웃
+          </button>
+        </div>
       )}
-    </button>
+    </div>
   )
 }

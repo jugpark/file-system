@@ -28,6 +28,20 @@
 *{box-sizing:border-box}
 @media (prefers-reduced-motion: reduce){ *{animation:none !important;transition:none !important} }
 
+/* ---------- 스크롤바 — 테마 토큰을 따라간다 ---------- */
+:root{color-scheme:light}           /* 네이티브 스크롤바/폼 컨트롤도 테마를 따르게 */
+[data-theme="dark"]{color-scheme:dark}
+
+*{scrollbar-width:thin;scrollbar-color:var(--line) transparent} /* Firefox */
+*::-webkit-scrollbar{width:10px;height:10px}
+*::-webkit-scrollbar-track{background:transparent}
+*::-webkit-scrollbar-corner{background:transparent}
+*::-webkit-scrollbar-thumb{
+  background:var(--line);border-radius:999px;
+  border:2px solid transparent;background-clip:padding-box;
+}
+*::-webkit-scrollbar-thumb:hover{background:var(--slate-soft);border:2px solid transparent;background-clip:padding-box}
+
 html,body,#root{height:100%}
 body{
   margin:0;
@@ -80,14 +94,28 @@ button{font-family:var(--sans)}
 .gnb-search.live:focus-within input{width:180px;transition:width .15s}
 @media (max-width:620px){ .gnb-search{display:none} }
 
-.gnb-user{display:flex;align-items:center;gap:9px;flex:none}
-.gnb-user .ava{width:26px;height:26px;border-radius:50%;flex:none;background:linear-gradient(135deg,#5865F2,#9AA2FF);object-fit:cover}
-.gnb-user .name{font-size:.82rem;font-weight:600;color:var(--slate)}
-.btn-logout{
-  all:unset;cursor:pointer;display:grid;place-items:center;
-  width:28px;height:28px;border-radius:7px;color:var(--slate-soft);
+/* 프로필 버튼 + 드롭다운 */
+.profile-wrap{position:relative;flex:none}
+.profile-btn{
+  all:unset;cursor:pointer;display:flex;align-items:center;gap:8px;
+  padding:4px 9px;border-radius:9px;
 }
-.btn-logout:hover{background:var(--surface);color:var(--danger)}
+.profile-btn:hover,.profile-btn[aria-expanded="true"]{background:var(--surface)}
+.profile-btn .ava,.profile-pop .ava{
+  width:26px;height:26px;border-radius:50%;flex:none;
+  background:linear-gradient(135deg,#5865F2,#9AA2FF);object-fit:cover;display:block;
+}
+.profile-btn .name{font-size:.82rem;font-weight:600;color:var(--slate)}
+.profile-btn .chev{color:var(--slate-soft);flex:none}
+@media (max-width:620px){ .profile-btn .name{display:none} }
+.profile-pop{
+  position:absolute;right:0;top:calc(100% + 8px);left:auto;width:228px;
+}
+.pop-head{display:flex;align-items:center;gap:10px;padding:9px 10px}
+.pop-head .ava.big{width:34px;height:34px}
+.pop-head .who-col{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pop-head b{font-size:.88rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag-perm.mini{font-size:.62rem;padding:2px 7px;align-self:flex-start}
 
 /* ---------- LNB (명세 m-lnb) ---------- */
 .lnb{border-right:1px solid var(--line-soft);padding:14px 12px;background:var(--surface);overflow-y:auto}
