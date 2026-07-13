@@ -3,8 +3,8 @@
 10~20인 사내 로컬 서버(NAS) 파일을 웹에서 관리하는 시스템.
 Discord OAuth2 + Role 기반 권한, 3단 레이아웃 파일 탐색기.
 
-- UI 명세: `../file-system-ui-spec.html`
-- 기술 스펙: `../file-system-dev-spec.md`
+- UI 명세: `docs/file-system-ui-spec.html`
+- 기술 스펙: `docs/file-system-dev-spec.md`
 
 ## 구조
 
@@ -60,7 +60,7 @@ Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callb
       패널→바텀 시트, <720px LNB→드로어), 읽기 전용 자물쇠 시각화, 휴지통 자동 비우기
       (`TRASH_RETENTION_DAYS`, 기본 30일)
 
-**M1~M4 + 확장 R1~R4 전체 완료** (`../file-system-extended-spec.md`):
+**M1~M4 + 확장 R1~R4 전체 완료** (`docs/file-system-extended-spec.md`):
 
 - **R1** — `docker/`(Dockerfile·compose·Caddyfile), `deploy/backup.sh`(sqlite .backup+rsync 증분),
   helmet(CSP)+rate-limit(로그인 10/분), **admin role**(`ADMIN_ROLE_ID` — 전 경로 접근, 남의 home은 read)
