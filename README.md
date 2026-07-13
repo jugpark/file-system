@@ -60,8 +60,9 @@ Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callb
       패널→바텀 시트, <720px LNB→드로어), 읽기 전용 자물쇠 시각화, 휴지통 자동 비우기
       (`TRASH_RETENTION_DAYS`, 기본 30일)
 
-**M1~M4 전체 완료.** 이후 후보(v2): ACL 관리 UI · SSE 실시간 갱신 · 파일 미리보기 ·
-공유 링크 · 버전 관리 — `../file-system-dev-spec.md` §10 참고.
+**M1~M4 전체 완료.** 이후 확장은 `../file-system-extended-spec.md` 참고 —
+R1(배포 필수: Docker/백업/하드닝/admin) → R2(미리보기·다중선택·zip·폴더 업로드·
+Discord 알림·SSE) → R3(ACL UI·용량 대시보드·감사 뷰) → R4(수요 확인 후).
 
 > **검색 구현 노트**: dev-spec의 FTS5 대신 `name_search`(NFC·소문자) LIKE 스캔.
 > 10~20인 NAS 규모에서는 FTS 동기화 복잡도가 이득보다 크다 — 코퍼스가 커지면 교체.
