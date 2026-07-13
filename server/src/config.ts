@@ -75,9 +75,14 @@ export const config = {
   },
 }
 
-fs.mkdirSync(config.storageRoot, { recursive: true })
-fs.mkdirSync(config.tmpDir, { recursive: true })
-fs.mkdirSync(config.trashDir, { recursive: true })
-fs.mkdirSync(path.dirname(config.databasePath), { recursive: true })
-fs.mkdirSync(config.thumbsDir, { recursive: true })
-fs.mkdirSync(config.versionsDir, { recursive: true })
+// Windows 드라이브 루트(C:\)는 존재해도 mkdirSync(recursive)가 EPERM을 던진다 → 존재하면 건너뜀
+function ensureDir(p: string): void {
+  if (fs.existsSync(p)) return
+  fs.mkdirSync(p, { recursive: true })
+}
+ensureDir(config.storageRoot)
+ensureDir(config.tmpDir)
+ensureDir(config.trashDir)
+ensureDir(path.dirname(config.databasePath))
+ensureDir(config.thumbsDir)
+ensureDir(config.versionsDir)
