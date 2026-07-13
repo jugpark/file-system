@@ -19,6 +19,9 @@
   --lock:#A9772A;
   --lock-soft:#F6EEDA;
   --danger:#C6413B;
+  /* 상호작용 토큰 — 다크 모드에서 별도 값으로 교체됨 */
+  --hover:#EEF0F4;          /* 리스트/트리 hover 배경 */
+  --blurple-hover:#4A56E8;  /* primary 버튼 hover (라이트=더 진하게, 다크=더 밝게) */
   --radius:16px;
   --radius-sm:10px;
   --sans:'Pretendard','Pretendard Variable',-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Noto Sans KR',system-ui,sans-serif;
@@ -125,14 +128,18 @@ button{font-family:var(--sans)}
   background:var(--blurple);color:#fff;font-weight:600;font-size:.85rem;
   border-radius:9px;padding:9px;margin-bottom:16px;cursor:pointer;
 }
+.m-new:hover:enabled{background:var(--blurple-hover)}
 .m-new:disabled,.m-new[aria-disabled="true"]{opacity:.45;cursor:not-allowed}
 .m-nav{display:flex;flex-direction:column;gap:2px;margin-bottom:14px}
 .m-nav a,.m-nav .nav-item{
   font-size:.85rem;color:var(--slate);padding:7px 9px;border-radius:7px;
   display:flex;align-items:center;gap:9px;text-decoration:none;cursor:pointer;
 }
-.m-nav a:hover{background:var(--surface-2);color:var(--ink)}
+.m-nav a svg{color:var(--slate-soft)}
+.m-nav a:hover{background:var(--hover);color:var(--ink)}
+.m-nav a:hover svg{color:var(--ink)}
 .m-nav .on{background:var(--blurple-soft);color:var(--blurple-ink);font-weight:600}
+.m-nav .on svg{color:var(--blurple)}
 .m-nav .nav-item.disabled{opacity:.45;cursor:not-allowed}
 .m-nav svg{width:15px;height:15px;flex:none}
 
@@ -143,19 +150,25 @@ button{font-family:var(--sans)}
   color:var(--slate-soft);margin:0 0 8px;font-weight:600;
 }
 .tree-row{display:flex;align-items:center;gap:2px;border-radius:6px}
-.tree-row:hover{background:var(--surface-2)}
+.tree-row:hover{background:var(--hover)}
+.tree-row:hover .tree-name{color:var(--ink)}
+.tree-row:hover .tree-arw{color:var(--slate)}
 .tree-row.on{background:var(--blurple-soft)}
 .tree-row.on .tree-name{color:var(--blurple-ink);font-weight:600}
+.tree-row.on .tree-arw{color:var(--blurple)}
 .tree-arw{
   all:unset;cursor:pointer;width:16px;height:22px;flex:none;
   display:grid;place-items:center;color:var(--slate-soft);font-size:.7rem;
+  border-radius:5px;
 }
+.tree-arw:hover{color:var(--ink)}
 .tree-arw.leaf{visibility:hidden}
 .tree-name{
   all:unset;cursor:pointer;flex:1;min-width:0;padding:3px 4px;
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.tree-children{padding-left:14px}
+/* 하위 단계 들여쓰기 — 왼쪽에 가이드 라인으로 계층을 보여준다 */
+.tree-children{margin-left:7px;padding-left:7px;border-left:1px solid var(--line-soft)}
 
 /* ---------- 메인 뷰 (명세 m-main) ---------- */
 .main{min-width:0;display:flex;flex-direction:column;overflow-y:auto;padding:14px 18px;background:var(--surface)}
@@ -266,7 +279,7 @@ table.lv .who i{width:18px;height:18px;border-radius:50%;background:linear-gradi
   background:var(--blurple);color:#fff;font-weight:600;font-size:.95rem;
   border:none;border-radius:10px;padding:13px;cursor:pointer;
 }
-.discord-btn:hover{background:var(--blurple-ink)}
+.discord-btn:hover{background:var(--blurple-hover)}
 .discord-btn svg{width:20px;height:20px}
 .login-note{margin-top:14px;font-size:.75rem;color:var(--slate-soft)}
 .login-error{
@@ -312,7 +325,7 @@ table.lv .who i{width:18px;height:18px;border-radius:50%;background:linear-gradi
   padding:9px 15px;border-radius:9px;text-align:center;
 }
 .btn.primary{background:var(--blurple);color:#fff}
-.btn.primary:hover{background:var(--blurple-ink)}
+.btn.primary:hover{background:var(--blurple-hover)}
 .btn.primary:disabled{opacity:.45;cursor:not-allowed}
 .btn.ghost{background:var(--surface);border:1px solid var(--line);color:var(--slate)}
 .btn.ghost:hover{background:var(--surface-2);color:var(--ink)}
@@ -457,12 +470,18 @@ select.txt{appearance:auto;cursor:pointer}
   --lock:#D3A557;
   --lock-soft:#3A3014;
   --danger:#E57370;
+  --hover:#222736;
+  --blurple-hover:#7A85F7;
 }
 [data-theme="dark"] .sk .b,
 [data-theme="dark"] .sk .sq{background:linear-gradient(90deg,#232833 25%,#2A2F3C 37%,#232833 63%);background-size:400% 100%}
 [data-theme="dark"] .gthumb,
 [data-theme="dark"] .info .thumb{background:linear-gradient(135deg,#242A3D,#1A1E2B)}
 [data-theme="dark"] .login-stage{background:linear-gradient(160deg,#171B2C,#111319)}
+/* 사이드바 — 본문(surface)보다 한 단계 낮은 톤으로 분리감, 트리 요소는 토큰이 처리 */
+[data-theme="dark"] .lnb{background:#131620}
+[data-theme="dark"] .drawer{background:#131620}
+[data-theme="dark"] .new-pop{background:var(--surface-2)}
 [data-theme="dark"] .ctx button.del:hover:not(:disabled){background:#3A1D1C}
 [data-theme="dark"] .login-error{background:#3A1D1C}
 
