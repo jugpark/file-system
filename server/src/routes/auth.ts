@@ -19,9 +19,13 @@ function setSessionCookie(reply: FastifyReply, sid: string) {
   })
 }
 
-/** 첫 로그인 시 개인 공간 폴더를 만들어 둔다 */
+/** 첫 로그인 시 개인 공간 폴더를 만들어 둔다 — 실패해도 로그인은 진행 */
 function ensureHomeDir(userId: string) {
-  fs.mkdirSync(resolveAbs(config.storageRoot, `/home/${userId}`), { recursive: true })
+  try {
+    fs.mkdirSync(resolveAbs(config.storageRoot, `/home/${userId}`), { recursive: true })
+  } catch {
+    // 스토리지 루트에 쓸 수 없는 환경(드라이브 루트 등) — 개인 공간 없이 동작
+  }
 }
 
 /** 로그인 계열은 봇 스캔 대상 — 전역(300/분)보다 엄격하게 */

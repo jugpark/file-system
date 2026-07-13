@@ -41,6 +41,8 @@ export interface MeResponse {
   roles: string[]
   /** 이 유저의 개인 공간 경로 (/home/{id}) */
   homePath: string
+  /** 개인 공간 폴더가 실제로 존재하는가 (스토리지 루트에 못 만드는 환경이면 false) */
+  homeExists: boolean
   /** ADMIN_ROLE_ID 보유자 — 전 경로 접근(남의 home은 read), 관리 페이지 노출 */
   isAdmin: boolean
 }

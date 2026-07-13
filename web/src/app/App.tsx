@@ -34,12 +34,12 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>
 }
 
-/** '/' 진입 → 내 작업 공간으로 */
+/** '/' 진입 → 내 작업 공간으로 (없으면 전체 루트로) */
 function HomeRedirect() {
   const me = useMe()
   if (me.isPending) return <FullSkeleton />
   if (me.isError) return <Navigate to="/login" replace />
-  return <Navigate to={`/browse${me.data.homePath}`} replace />
+  return <Navigate to={me.data.homeExists ? `/browse${me.data.homePath}` : '/browse/'} replace />
 }
 
 export default function App() {

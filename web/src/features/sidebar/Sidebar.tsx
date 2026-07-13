@@ -116,8 +116,8 @@ export default function Sidebar({ path, me }: { path: string | null; me: MeRespo
       </div>
 
       <nav className="m-nav">
-        <Link className={inHome ? 'on' : ''} to={browseTo(me.homePath)}>
-          <IconFolder />내 작업 공간
+        <Link className={inHome ? 'on' : ''} to={browseTo(me.homeExists ? me.homePath : '/')}>
+          <IconFolder />{me.homeExists ? '내 작업 공간' : '전체'}
         </Link>
         <Link className={location.pathname === '/recent' ? 'on' : ''} to="/recent">
           <IconClock />최근 파일

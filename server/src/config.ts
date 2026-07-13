@@ -41,9 +41,13 @@ export const config = {
   baseUrl: (env.BASE_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
   sessionSecret: env.SESSION_SECRET ?? 'dev-only-insecure-secret',
   storageRoot: path.resolve(env.STORAGE_ROOT ?? './data/storage'),
-  /** 업로드 스테이징 — storage와 같은 볼륨이라 rename이 원자적 */
-  tmpDir: path.resolve(env.STORAGE_ROOT ?? './data/storage', '.tmp'),
-  trashDir: path.resolve(env.STORAGE_ROOT ?? './data/storage', '.trash'),
+  /**
+   * 업로드 스테이징/휴지통/버전 보관소 — 기본은 storage 안(.tmp 등).
+   * rename이 원자적이려면 storage와 "같은 볼륨"이기만 하면 되므로,
+   * 드라이브 루트처럼 루트에 폴더를 못 만드는 경우 env로 같은 볼륨의 다른 위치를 지정한다.
+   */
+  tmpDir: path.resolve(env.TMP_DIR ?? path.join(env.STORAGE_ROOT ?? './data/storage', '.tmp')),
+  trashDir: path.resolve(env.TRASH_DIR ?? path.join(env.STORAGE_ROOT ?? './data/storage', '.trash')),
   databasePath: path.resolve(env.DATABASE_PATH ?? './data/app.db'),
   maxUploadMb: Number(env.MAX_UPLOAD_MB ?? 2048),
   /** inotify가 안 통하는 마운트(9p/drvfs, 일부 NFS/SMB)에서 true — 폴링 감시 */
@@ -63,7 +67,9 @@ export const config = {
   /** 설정 시 공유 폴더 업로드/삭제·디스크 경고를 이 웹훅으로 알림 */
   webhookUrl: env.DISCORD_WEBHOOK_URL ?? '',
   /** 같은 이름 덮어쓰기 시 이전 버전 보관소 */
-  versionsDir: path.resolve(env.STORAGE_ROOT ?? './data/storage', '.versions'),
+  versionsDir: path.resolve(
+    env.VERSIONS_DIR ?? path.join(env.STORAGE_ROOT ?? './data/storage', '.versions'),
+  ),
   /** 썸네일 디스크 캐시 (스토리지가 아니라 DB 옆에 둔다) */
   thumbsDir: path.resolve(path.dirname(path.resolve(env.DATABASE_PATH ?? './data/app.db')), 'thumbs'),
   discord,
