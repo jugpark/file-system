@@ -33,7 +33,7 @@ export const activityLog = sqliteTable('activity_log', {
   action: text('action', {
     enum: [
       'upload', 'mkdir', 'rename', 'move', 'copy', 'trash', 'restore',
-      'acl_change', 'share_create', 'share_revoke', 'version_restore',
+      'acl_change', 'share_create', 'share_revoke', 'version_restore', 'settings_change',
     ],
   }).notNull(),
   detailJson: text('detail_json'),
@@ -53,6 +53,12 @@ export const pinnedPaths = sqliteTable('pinned_paths', {
   userId: text('user_id').notNull(),
   path: text('path').notNull(),
   createdAt: integer('created_at').notNull(),
+})
+
+/** 런타임 서버 설정 (storageRoot 등) — env보다 우선 */
+export const settings = sqliteTable('settings', {
+  key: text('key').primaryKey(),
+  value: text('value').notNull(),
 })
 
 export const trash = sqliteTable('trash', {

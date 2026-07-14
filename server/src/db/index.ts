@@ -34,11 +34,15 @@ CREATE TABLE IF NOT EXISTS activity_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   path TEXT NOT NULL,
   actor_id TEXT NOT NULL,
-  action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore')),
+  action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore','settings_change')),
   detail_json TEXT,
   created_at INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_activity_path ON activity_log(path);
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS share_links (
   token TEXT PRIMARY KEY,
   path TEXT NOT NULL,
@@ -81,12 +85,12 @@ CREATE TABLE IF NOT EXISTS folder_acl (
 );
 `)
 
-// 마이그레이션: 구버전 activity_log의 CHECK 제약에 확장 액션이 없으면 재생성
+// 마이그레이션: 구버전 activity_log의 CHECK 제약에 최신 액션이 없으면 재생성
 {
   const master = sqlite
     .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'activity_log'`)
     .get() as { sql: string } | undefined
-  if (master && !master.sql.includes('acl_change')) {
+  if (master && !master.sql.includes('settings_change')) {
     sqlite.exec(`
       BEGIN;
       ALTER TABLE activity_log RENAME TO activity_log_old;
@@ -94,7 +98,7 @@ CREATE TABLE IF NOT EXISTS folder_acl (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         path TEXT NOT NULL,
         actor_id TEXT NOT NULL,
-        action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore')),
+        action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore','settings_change')),
         detail_json TEXT,
         created_at INTEGER NOT NULL
       );

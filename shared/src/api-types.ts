@@ -65,6 +65,7 @@ export type ActivityAction =
   | 'share_create'
   | 'share_revoke'
   | 'version_restore'
+  | 'settings_change'
 
 export interface UploadResponse {
   /** 실제 저장된 경로 (이름 충돌 시 " (1)" 붙은 최종본) */
@@ -235,4 +236,14 @@ export interface PinDto {
 
 export interface PinListResponse {
   pins: PinDto[]
+}
+
+/** 서버 설정 (admin) — 스토리지 루트 런타임 변경 */
+export interface SettingsResponse {
+  storageRoot: string
+  indexDisabled: boolean
+}
+
+export interface UpdateSettingsBody {
+  storageRoot: string
 }

@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import type {
   AclRuleDto,
   AdminActivityResponse,
   RoleDto,
+  SettingsResponse,
   UsageResponse,
 } from '@fs/shared'
 import { api, apiJson } from '../../lib/api'
@@ -17,6 +18,7 @@ const ACTION_LABELS: Record<string, string> = {
   upload: '업로드', mkdir: '폴더 생성', rename: '이름 변경', move: '이동', copy: '복사',
   trash: '삭제', restore: '복원', acl_change: '권한 변경',
   share_create: '공유 생성', share_revoke: '공유 해지', version_restore: '버전 복원',
+  settings_change: '설정 변경',
 }
 
 /** R3 관리 — ACL 규칙 · 스토리지 사용량 · 감사 로그 (admin 전용) */
@@ -35,11 +37,75 @@ export default function AdminPage() {
       }
     >
       <section className="main">
+        <StorageSection />
         <AclSection />
         <UsageSection />
         <AuditSection />
       </section>
     </AppLayout>
+  )
+}
+
+/** 스토리지 위치 — 여기서 지정한 경로가 탐색기의 "전체" 루트가 된다 */
+function StorageSection() {
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+  const { showNotice } = useOverlays()
+  const [input, setInput] = useState('')
+  const [busy, setBusy] = useState(false)
+
+  const q = useQuery({
+    queryKey: ['admin-settings'],
+    queryFn: () => api<SettingsResponse>('/api/admin/settings'),
+  })
+
+  const apply = async () => {
+    const root = input.trim()
+    if (!root) return
+    setBusy(true)
+    try {
+      const res = await apiJson<SettingsResponse>('/api/admin/settings', 'PUT', {
+        storageRoot: root,
+      })
+      // 루트가 바뀌면 모든 목록/트리/검색 캐시가 무효
+      queryClient.clear()
+      showNotice(`스토리지 위치 변경: ${res.storageRoot}`)
+      setInput('')
+      navigate('/browse/')
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : '적용에 실패했습니다')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="admin-section">
+      <h3 className="page-h">스토리지 위치</h3>
+      <p style={{ color: 'var(--slate)', fontSize: '.85rem', margin: '0 0 10px' }}>
+        지정한 경로가 탐색기의 <b>전체</b> 루트가 되고, 그 하위 항목만 표시됩니다.
+        변경 즉시 전체 사용자에게 적용되며 검색 인덱스는 새 위치 기준으로 다시 만들어집니다.
+      </p>
+      <div className="form-row">
+        <input
+          className="txt sm"
+          style={{ minWidth: 280, fontFamily: 'var(--mono)' }}
+          placeholder={q.data ? `현재: ${q.data.storageRoot}` : '예: C:/ 또는 /data/storage'}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && apply()}
+        />
+        <button className="btn primary sm" disabled={busy || !input.trim()} onClick={apply}>
+          적용
+        </button>
+      </div>
+      {q.data && (
+        <p style={{ color: 'var(--slate-soft)', fontSize: '.74rem', marginTop: 8, fontFamily: 'var(--mono)' }}>
+          현재 루트: {q.data.storageRoot}
+          {q.data.indexDisabled && ' · 검색 인덱스 꺼짐(INDEX_DISABLED)'}
+        </p>
+      )}
+    </div>
   )
 }
 

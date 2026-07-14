@@ -16,6 +16,7 @@ const ACTION_LABEL: Record<ActivityAction, string> = {
   share_create: '공유 링크를 만듦',
   share_revoke: '공유 링크를 해지함',
   version_restore: '이전 버전으로 복원함',
+  settings_change: '서버 설정을 변경함',
 }
 
 /** UI 명세 §02-D — 정보·로그 패널. variant='sheet'면 <1024px 바텀 시트 내부용 */

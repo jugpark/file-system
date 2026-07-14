@@ -48,7 +48,11 @@ export const config = {
    */
   tmpDir: path.resolve(env.TMP_DIR ?? path.join(env.STORAGE_ROOT ?? './data/storage', '.tmp')),
   trashDir: path.resolve(env.TRASH_DIR ?? path.join(env.STORAGE_ROOT ?? './data/storage', '.trash')),
+  /** 작업 폴더가 env로 고정됐는가 — 고정 시 스토리지 루트 런타임 변경에도 유지 */
+  workDirsPinned: !!(env.TMP_DIR || env.TRASH_DIR || env.VERSIONS_DIR),
   databasePath: path.resolve(env.DATABASE_PATH ?? './data/app.db'),
+  /** DB·썸네일·작업 폴더 폴백이 사는 곳 */
+  dataDir: path.dirname(path.resolve(env.DATABASE_PATH ?? './data/app.db')),
   maxUploadMb: Number(env.MAX_UPLOAD_MB ?? 2048),
   /** inotify가 안 통하는 마운트(9p/drvfs, 일부 NFS/SMB)에서 true — 폴링 감시 */
   watchPolling: env.WATCH_POLLING === 'true',
@@ -82,7 +86,7 @@ export const config = {
 }
 
 // Windows 드라이브 루트(C:\)는 존재해도 mkdirSync(recursive)가 EPERM을 던진다 → 존재하면 건너뜀
-function ensureDir(p: string): void {
+export function ensureDir(p: string): void {
   if (fs.existsSync(p)) return
   fs.mkdirSync(p, { recursive: true })
 }

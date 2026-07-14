@@ -5,14 +5,19 @@ import type {
   AclRuleDto,
   AdminActivityResponse,
   RoleDto,
+  SettingsResponse,
+  UpdateSettingsBody,
   UsageResponse,
 } from '@fs/shared'
 import { config } from '../config'
 import { db, sqlite } from '../db'
 import { activityLog, folderAcl, users } from '../db/schema'
+import { fullScan } from '../fs/indexer'
 import { recordActivity } from '../fs/meta'
 import { toRelPath } from '../fs/safe-path'
+import { saveStorageRoot } from '../settings'
 import { errorBody } from '../types'
+import { restartWatcher } from '../watcher'
 
 /** 스토리지 볼륨 총/여유 바이트 */
 export async function diskUsage(): Promise<{ totalBytes: number; freeBytes: number }> {
@@ -30,6 +35,40 @@ export default async function adminRoutes(app: FastifyInstance) {
     if (!req.user?.isAdmin) {
       return reply.code(403).send(errorBody('ADMIN_ONLY', '관리자만 사용할 수 있습니다'))
     }
+  })
+
+  // ── 서버 설정: 스토리지 루트 ──
+  app.get('/api/admin/settings', async (): Promise<SettingsResponse> => ({
+    storageRoot: config.storageRoot,
+    indexDisabled: config.indexDisabled,
+  }))
+
+  app.put('/api/admin/settings', async (req, reply) => {
+    const user = req.user!
+    const body = req.body as UpdateSettingsBody
+    const requested = (body?.storageRoot ?? '').trim()
+    if (!requested) {
+      return reply.code(400).send(errorBody('BAD_INPUT', 'storageRoot가 필요합니다'))
+    }
+    const before = config.storageRoot
+    try {
+      saveStorageRoot(requested)
+    } catch (err) {
+      return reply
+        .code(400)
+        .send(errorBody('BAD_ROOT', err instanceof Error ? err.message : '적용할 수 없는 경로입니다'))
+    }
+    recordActivity('settings_change', '/', user.id, { key: 'storageRoot', from: before, to: config.storageRoot })
+    req.log.warn(`스토리지 루트 변경: ${before} → ${config.storageRoot} (by ${user.username})`)
+    if (!config.indexDisabled) {
+      // 새 루트 기준 재색인 — 응답을 막지 않게 백그라운드로
+      fullScan()
+        .then((n) => req.log.info(`재색인 완료 — ${n}개 항목`))
+        .catch((err) => req.log.warn({ err }, '재색인 실패'))
+      restartWatcher(req.log).catch((err) => req.log.warn({ err }, '워처 재시작 실패'))
+    }
+    const res: SettingsResponse = { storageRoot: config.storageRoot, indexDisabled: config.indexDisabled }
+    return res
   })
 
   app.get('/api/admin/acl', async () => {

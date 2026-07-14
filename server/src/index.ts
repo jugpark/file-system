@@ -26,10 +26,14 @@ import pinsRoutes from './routes/pins'
 import shareRoutes from './routes/share'
 import thumbnailRoutes from './routes/thumbnail'
 import versionsRoutes from './routes/versions'
+import { loadSettings } from './settings'
 import { errorBody } from './types'
 import { startWatcher } from './watcher'
 
 const app = Fastify({ logger: true })
+
+// DB에 저장된 런타임 설정(스토리지 루트)이 env 기본보다 우선
+loadSettings(app.log)
 
 // ── R1 보안 하드닝 ──
 await app.register(fastifyHelmet, {

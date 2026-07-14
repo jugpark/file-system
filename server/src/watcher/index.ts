@@ -19,6 +19,17 @@ export function toWatchRel(storageRoot: string, absPath: string): string | null 
   return '/' + segs.join('/')
 }
 
+let current: ReturnType<typeof chokidar.watch> | null = null
+
+/** 스토리지 루트 변경 시 호출 — 기존 감시를 닫고 새 루트로 다시 시작 */
+export async function restartWatcher(log: FastifyBaseLogger): Promise<void> {
+  if (current) {
+    await current.close().catch(() => {})
+    current = null
+  }
+  startWatcher(log)
+}
+
 export function startWatcher(log: FastifyBaseLogger): void {
   const watcher = chokidar.watch(config.storageRoot, {
     ignoreInitial: true, // 초기 상태는 fullScan()이 담당
@@ -54,5 +65,6 @@ export function startWatcher(log: FastifyBaseLogger): void {
     .on('unlinkDir', remove)
     .on('error', (err) => log.warn({ err }, 'watcher error'))
 
-  log.info('파일 워처 시작 (외부 변경 → fs_index)')
+  current = watcher
+  log.info(`파일 워처 시작 (외부 변경 → fs_index): ${config.storageRoot}`)
 }
