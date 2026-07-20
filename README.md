@@ -81,16 +81,21 @@ Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callb
 - **R3** — `/admin` 관리 페이지(ACL 규칙 CRUD + Discord role 목록, 사용량 대시보드, 감사 로그),
   사이드바 디스크 게이지, 디스크 여유 10% 미만 웹훅 경고
 - **R4** — 공유 링크(무인증 다운로드, 만료 1/7/30일, `/shares` 관리), 버전 보관(같은 이름
-  덮어쓰기 시 최근 5개 자동 보관+복원), 다크 모드, 즐겨찾기(핀), 키보드 단축키(Del/F2/Enter/Esc/방향키)
+  덮어쓰기 시 최근 5개 자동 보관+복원), 다크 모드, 즐겨찾기(핀), 키보드 단축키(Del/F2/Enter/Esc/방향키),
+  **문서 내용 검색**(PDF·docx/xlsx/pptx·HWPX·텍스트 → FTS5 trigram, 검색 페이지에
+  "파일명 일치 / 문서 내용 일치" 분리 표시. `CONTENT_SEARCH_DISABLED=true`로 끄기,
+  `CONTENT_MAX_MB` 초과 파일은 추출 생략, 기본 20MB)
 
-미구현으로 남긴 것: **문서 내용 검색**(extended-spec R4 — 추출 파이프라인 유지비 때문에
-실수요 확인 전 보류), 오피스 동시 편집·WebDAV 등 비권장 목록.
+미구현으로 남긴 것: 오피스 동시 편집·WebDAV 등 비권장 목록. 레거시 바이너리 포맷
+(doc/hwp/xls/ppt)의 내용 추출은 파서 유지비 대비 효용이 낮아 제외.
 
 > ⚠ 같은 이름 업로드의 의미가 바뀌었다: " (1)" 회피 대신 **기존본을 버전으로 보관하고
 > 이름을 승계**한다(파일↔폴더 충돌만 " (1)"). 이전 버전은 우클릭 → '버전 기록'.
 
-> **검색 구현 노트**: dev-spec의 FTS5 대신 `name_search`(NFC·소문자) LIKE 스캔.
-> 10~20인 NAS 규모에서는 FTS 동기화 복잡도가 이득보다 크다 — 코퍼스가 커지면 교체.
+> **검색 구현 노트**: 파일명은 `name_search`(NFC·소문자) LIKE 스캔 — 10~20인 NAS
+> 규모에서는 FTS 동기화 복잡도가 이득보다 크다. 문서 **내용**은 별도 2차 인덱스
+> (`content_fts`, FTS5 trigram — 한글 포함 3글자 이상 부분 일치, 2글자는 LIKE 폴백)로,
+> fs_index 갱신 훅을 그대로 따라가며 추출은 백그라운드 큐에서 한 건씩 처리한다.
 >
 > **inotify 미지원 마운트**(WSL 9p/drvfs, 일부 NFS/SMB)에서는 `WATCH_POLLING=true`
 > 필요. 어느 환경이든 `INDEX_RESCAN_MIN`(기본 10분) 주기 재스캔이 안전망.

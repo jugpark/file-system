@@ -66,6 +66,10 @@ export const config = {
   indexDisabled: env.INDEX_DISABLED === 'true',
   /** 휴지통 보존 일수 — 초과분은 매일 영구 삭제. 0=자동 비우기 끔 */
   trashRetentionDays: Number(env.TRASH_RETENTION_DAYS ?? 30),
+  /** true면 문서 내용 검색(텍스트 추출·FTS 인덱싱)을 끈다 — 파일명 검색은 유지 */
+  contentSearchDisabled: env.CONTENT_SEARCH_DISABLED === 'true',
+  /** 이 크기(MB)를 넘는 파일은 내용 추출을 건너뜀 */
+  contentMaxMb: Number(env.CONTENT_MAX_MB ?? 20),
   /** 이 Discord role 보유자는 admin — 전 경로 접근(남의 home은 read), 관리 API 사용 */
   adminRoleId: env.ADMIN_ROLE_ID ?? '',
   /** 설정 시 공유 폴더 업로드/삭제·디스크 경고를 이 웹훅으로 알림 */

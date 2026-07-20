@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm'
 import { config, ensureDir } from './config'
 import { db, sqlite } from './db'
 import { settings } from './db/schema'
+import { contentWipe } from './fs/content-index'
 
 /**
  * 런타임 서버 설정 — 스토리지 루트를 UI(admin)에서 바꿀 수 있게 한다.
@@ -77,5 +78,6 @@ export function saveStorageRoot(newRoot: string): string {
     .run()
   // 루트가 바뀌면 상대 경로 기반 인덱스는 전부 무효
   sqlite.prepare('DELETE FROM fs_index').run()
+  contentWipe()
   return config.storageRoot
 }

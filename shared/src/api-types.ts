@@ -137,12 +137,23 @@ export interface TrashListResponse {
 
 // ─── 메타데이터 조회 (M3) ───────────────────────────────────
 
+/** 문서 내용 일치 한 건 — 스니펫은 마킹 없는 평문, 하이라이트는 클라이언트가 질의어로 수행 */
+export interface ContentMatch {
+  entry: FsEntry
+  snippet: string
+}
+
 /** 검색·최근 파일 결과 공용 — FsEntry와 동일 형태 */
 export interface SearchResponse {
   query: string
   entries: FsEntry[]
   /** 권한 필터 전 원본 매치 수 (더 있음 표시용) */
   truncated: boolean
+  /** 문서 내용 일치 (R4 내용 검색) — 기능이 꺼져 있으면 빈 배열 */
+  content: ContentMatch[]
+  contentTruncated: boolean
+  /** 서버에 내용 검색이 켜져 있는가 — UI 안내 문구용 */
+  contentEnabled: boolean
 }
 
 export interface RecentResponse {

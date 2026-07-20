@@ -504,3 +504,18 @@ select.txt{appearance:auto;cursor:pointer}
 .new-pop button:hover{background:var(--blurple-soft);color:var(--blurple-ink)}
 .new-pop button svg{width:15px;height:15px;color:var(--slate-soft);flex:none}
 .new-pop button:hover svg{color:var(--blurple)}
+
+/* 검색 — 섹션 헤더 + 문서 내용 일치 목록 */
+.sec-h{font-size:.72rem;letter-spacing:.05em;text-transform:uppercase;color:var(--slate-soft);font-weight:600;margin:18px 0 8px}
+.m-toolbar + .sec-h{margin-top:0}
+.cm-item{padding:10px 12px;border-bottom:1px solid var(--line-soft)}
+.cm-item:hover{background:var(--surface-2)}
+.cm-head{display:flex;align-items:center;gap:9px;min-width:0}
+.cm-head .fic{display:inline-flex;color:var(--slate);flex:none}
+.cm-name{color:var(--ink);font-weight:500;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm-name:hover{text-decoration:underline}
+.cm-loc{font-family:var(--mono);font-size:.74rem;color:var(--slate-soft);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cm-loc:hover{color:var(--blurple);text-decoration:underline}
+.cm-mtime{margin-left:auto;font-family:var(--mono);font-size:.74rem;color:var(--slate-soft);flex:none}
+.cm-snippet{margin:6px 0 0 24px;font-size:.82rem;color:var(--slate);line-height:1.5;overflow-wrap:anywhere}
+.cm-snippet mark{background:var(--blurple-soft);color:var(--blurple-ink);border-radius:3px;padding:0 2px}

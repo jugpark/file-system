@@ -23,8 +23,10 @@
     "chokidar": "^4.0.3",
     "drizzle-orm": "^0.39.3",
     "fastify": "^5.2.1",
+    "fflate": "^0.8.3",
     "sharp": "^0.33.5",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.2",
+    "unpdf": "^1.6.2"
   },
   "devDependencies": {
     "@types/archiver": "^6.0.3",

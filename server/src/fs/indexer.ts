@@ -2,6 +2,7 @@ import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { config } from '../config'
 import { sqlite } from '../db'
+import { contentEnqueue, contentMove, contentReconcile, contentRemove } from './content-index'
 
 /**
  * fs_index — 검색·최근 파일 전용 인덱스. 탐색(목록)의 진실의 원천은 여전히
@@ -47,6 +48,7 @@ export function indexUpsert(relPath: string, stat: { isDir: boolean; size: numbe
     Math.round(stat.mtimeMs),
     Date.now(),
   )
+  if (!stat.isDir) contentEnqueue(relPath, stat.mtimeMs)
 }
 
 /** 항목 자신 + (폴더면) 하위 전부 제거 */
@@ -54,6 +56,7 @@ export function indexRemove(relPath: string): void {
   sqlite
     .prepare(`DELETE FROM fs_index WHERE path = ? OR path LIKE ? ESCAPE '\\'`)
     .run(relPath, likeEscape(relPath) + '/%')
+  contentRemove(relPath)
 }
 
 /** rename/move — 경로 키·parent 일괄 이전 */
@@ -72,6 +75,7 @@ export function indexMovePrefix(from: string, to: string): void {
        WHERE path LIKE ? ESCAPE '\\'`,
     )
     .run(to, from.length + 1, to, from.length + 1, likeEscape(from) + '/%')
+  contentMove(from, to)
 }
 
 /** 기동 시 전체 재구축 — 스토리지를 걸어 실제 상태로 맞춘다 */
@@ -100,6 +104,7 @@ export async function fullScan(): Promise<number> {
     }
   })
   tx()
+  contentReconcile()
   return rows.length
 }
 
@@ -133,6 +138,14 @@ export function searchIndex(query: string, limit: number): IndexRow[] {
     )
     .all(`%${q}%`, limit)
     .map((r) => toRow(r as Record<string, unknown>))
+}
+
+/** 단일 경로 조회 — 내용 검색 결과에 크기·mtime을 붙일 때 사용 */
+export function indexGet(relPath: string): IndexRow | null {
+  const r = sqlite
+    .prepare('SELECT path, name, is_dir, size, mtime FROM fs_index WHERE path = ?')
+    .get(relPath)
+  return r ? toRow(r as Record<string, unknown>) : null
 }
 
 /** 최근 수정 파일 (폴더 제외) */

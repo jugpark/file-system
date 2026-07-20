@@ -3,6 +3,7 @@ import { desc, eq } from 'drizzle-orm'
 import type {
   ActivityItem,
   ActivityResponse,
+  ContentMatch,
   FsEntry,
   RecentResponse,
   SearchResponse,
@@ -11,7 +12,8 @@ import { resolvePermission, type AclRule } from '../acl/resolve'
 import { loadAclRules } from '../acl/store'
 import { db } from '../db'
 import { activityLog, users } from '../db/schema'
-import { recentFiles, searchIndex, type IndexRow } from '../fs/indexer'
+import { contentSearchEnabled, searchContent } from '../fs/content-index'
+import { indexGet, recentFiles, searchIndex, type IndexRow } from '../fs/indexer'
 import { uploaderNamesFor } from '../fs/meta'
 import { toRelPath } from '../fs/safe-path'
 import type { SessionUser } from '../auth/session'
@@ -39,12 +41,16 @@ function toEntries(user: SessionUser, rows: IndexRow[], rules: AclRule[], cap: n
 }
 
 export default async function metaRoutes(app: FastifyInstance) {
-  /** 파일명 검색 — fs_index LIKE 스캔 + 권한 필터 */
+  /** 파일명 + 문서 내용 검색 — fs_index LIKE 스캔 / content_fts + 권한 필터 */
   app.get('/api/search', async (req) => {
     const user = req.user!
     const q = ((req.query as { q?: string }).q ?? '').trim()
+    const contentEnabled = contentSearchEnabled()
     if (q.length < 1) {
-      const empty: SearchResponse = { query: q, entries: [], truncated: false }
+      const empty: SearchResponse = {
+        query: q, entries: [], truncated: false,
+        content: [], contentTruncated: false, contentEnabled,
+      }
       return empty
     }
     const rules = loadAclRules()
@@ -52,10 +58,35 @@ export default async function metaRoutes(app: FastifyInstance) {
     // 권한 필터로 걸러질 것을 감안해 넉넉히 뽑는다
     const rows = searchIndex(q, 500)
     const entries = toEntries(user, rows, rules, CAP)
+
+    // 내용 일치 — 히트를 fs_index와 조인해 FsEntry 형태로, 권한 필터 후 CAP
+    const CONTENT_CAP = 30
+    const hits = searchContent(q, 300)
+    const content: ContentMatch[] = []
+    for (const h of hits) {
+      if (content.length >= CONTENT_CAP) break
+      const row = indexGet(h.path)
+      if (!row || row.isDir) continue
+      const perm = resolvePermission(user, h.path, rules)
+      if (perm === 'none') continue
+      content.push({
+        entry: {
+          name: row.name, path: row.path, isDir: false, size: row.size,
+          mtime: row.mtime, permission: perm, uploader: null,
+        },
+        snippet: h.snippet,
+      })
+    }
+    const uploaders = uploaderNamesFor(content.map((c) => c.entry.path))
+    for (const c of content) c.entry.uploader = uploaders.get(c.entry.path) ?? null
+
     const res: SearchResponse = {
       query: q,
       entries,
       truncated: rows.length >= 500 || entries.length >= CAP,
+      content,
+      contentTruncated: hits.length >= 300 || content.length >= CONTENT_CAP,
+      contentEnabled,
     }
     return res
   })
