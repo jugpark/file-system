@@ -519,3 +519,7 @@ select.txt{appearance:auto;cursor:pointer}
 .cm-mtime{margin-left:auto;font-family:var(--mono);font-size:.74rem;color:var(--slate-soft);flex:none}
 .cm-snippet{margin:6px 0 0 24px;font-size:.82rem;color:var(--slate);line-height:1.5;overflow-wrap:anywhere}
 .cm-snippet mark{background:var(--blurple-soft);color:var(--blurple-ink);border-radius:3px;padding:0 2px}
+
+/* 딥링크 도착 행 강조 */
+tr.flash td{animation:rowflash 2.6s ease-out}
+@keyframes rowflash{0%,55%{background:var(--blurple-soft)}100%{background:transparent}}

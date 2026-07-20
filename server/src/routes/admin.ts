@@ -1,9 +1,14 @@
 import fsp from 'node:fs/promises'
 import type { FastifyInstance } from 'fastify'
 import { and, desc, eq } from 'drizzle-orm'
+import path from 'node:path'
+import { inArray } from 'drizzle-orm'
 import type {
   AclRuleDto,
   AdminActivityResponse,
+  ContentIndexStatusResponse,
+  PurgeTrashBody,
+  PurgeTrashResponse,
   RoleDto,
   SettingsResponse,
   UpdateSettingsBody,
@@ -11,7 +16,13 @@ import type {
 } from '@fs/shared'
 import { config } from '../config'
 import { db, sqlite } from '../db'
-import { activityLog, folderAcl, users } from '../db/schema'
+import { activityLog, folderAcl, trash, users } from '../db/schema'
+import {
+  contentErrors,
+  contentRetryErrors,
+  contentSearchEnabled,
+  contentStats,
+} from '../fs/content-index'
 import { fullScan } from '../fs/indexer'
 import { recordActivity } from '../fs/meta'
 import { toRelPath } from '../fs/safe-path'
@@ -158,6 +169,39 @@ export default async function adminRoutes(app: FastifyInstance) {
       )
       .all() as Array<{ top: string; bytes: number }>
     return { ...disk, folders: rows.map((r) => ({ path: r.top, bytes: r.bytes })) }
+  })
+
+  /** 내용 검색 인덱스 상태 — 카운트/큐/실패 목록 */
+  app.get('/api/admin/content-index', async (): Promise<ContentIndexStatusResponse> => {
+    const stats = contentStats()
+    return { enabled: contentSearchEnabled(), ...stats, errors: contentErrors() }
+  })
+
+  /** 추출 실패 전부 재시도 */
+  app.post('/api/admin/content-index/retry', async () => {
+    return { retried: contentRetryErrors() }
+  })
+
+  /** 휴지통 영구 삭제 — ids 없으면 전체 비우기 */
+  app.post('/api/admin/trash/purge', async (req) => {
+    const user = req.user!
+    const ids = (req.body as PurgeTrashBody | undefined)?.ids
+    const rows = ids?.length
+      ? db.select().from(trash).where(inArray(trash.id, ids)).all()
+      : db.select().from(trash).all()
+    let purged = 0
+    for (const row of rows) {
+      try {
+        await fsp.rm(path.join(config.trashDir, row.id), { recursive: true, force: true })
+        db.delete(trash).where(eq(trash.id, row.id)).run()
+        recordActivity('trash_purge', row.originalPath, user.id, { trashId: row.id })
+        purged++
+      } catch (err) {
+        req.log.warn({ err, id: row.id }, '휴지통 영구 삭제 실패 — 다음 항목 계속')
+      }
+    }
+    const res: PurgeTrashResponse = { purged }
+    return res
   })
 
   /** 감사 로그 — 전체 활동 스트림 */

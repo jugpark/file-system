@@ -34,7 +34,7 @@ CREATE TABLE IF NOT EXISTS activity_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   path TEXT NOT NULL,
   actor_id TEXT NOT NULL,
-  action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore','settings_change')),
+  action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore','settings_change','download','trash_purge')),
   detail_json TEXT,
   created_at INTEGER NOT NULL
 );
@@ -62,7 +62,8 @@ CREATE TABLE IF NOT EXISTS trash (
   original_path TEXT NOT NULL,
   is_dir INTEGER NOT NULL,
   deleted_by TEXT NOT NULL,
-  deleted_at INTEGER NOT NULL
+  deleted_at INTEGER NOT NULL,
+  size INTEGER
 );
 CREATE TABLE IF NOT EXISTS fs_index (
   path TEXT PRIMARY KEY,
@@ -86,11 +87,12 @@ CREATE TABLE IF NOT EXISTS folder_acl (
 `)
 
 // 마이그레이션: 구버전 activity_log의 CHECK 제약에 최신 액션이 없으면 재생성
+// (조건은 항상 "가장 최근 추가된 액션"으로 검사 — 그 이전 버전 전부를 한 번에 끌어올린다)
 {
   const master = sqlite
     .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'activity_log'`)
     .get() as { sql: string } | undefined
-  if (master && !master.sql.includes('settings_change')) {
+  if (master && !master.sql.includes('trash_purge')) {
     sqlite.exec(`
       BEGIN;
       ALTER TABLE activity_log RENAME TO activity_log_old;
@@ -98,7 +100,7 @@ CREATE TABLE IF NOT EXISTS folder_acl (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         path TEXT NOT NULL,
         actor_id TEXT NOT NULL,
-        action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore','settings_change')),
+        action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore','settings_change','download','trash_purge')),
         detail_json TEXT,
         created_at INTEGER NOT NULL
       );
@@ -107,6 +109,14 @@ CREATE TABLE IF NOT EXISTS folder_acl (
       CREATE INDEX IF NOT EXISTS idx_activity_path ON activity_log(path);
       COMMIT;
     `)
+  }
+}
+
+// 마이그레이션: trash.size (2026-07-20 휴지통 용량 표시)
+{
+  const cols = sqlite.prepare(`PRAGMA table_info(trash)`).all() as Array<{ name: string }>
+  if (!cols.some((c) => c.name === 'size')) {
+    sqlite.exec(`ALTER TABLE trash ADD COLUMN size INTEGER`)
   }
 }
 

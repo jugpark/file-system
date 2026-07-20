@@ -4,6 +4,7 @@ import { Navigate, useNavigate } from 'react-router-dom'
 import type {
   AclRuleDto,
   AdminActivityResponse,
+  ContentIndexStatusResponse,
   RoleDto,
   SettingsResponse,
   UsageResponse,
@@ -18,7 +19,7 @@ const ACTION_LABELS: Record<string, string> = {
   upload: '업로드', mkdir: '폴더 생성', rename: '이름 변경', move: '이동', copy: '복사',
   trash: '삭제', restore: '복원', acl_change: '권한 변경',
   share_create: '공유 생성', share_revoke: '공유 해지', version_restore: '버전 복원',
-  settings_change: '설정 변경',
+  settings_change: '설정 변경', download: '다운로드', trash_purge: '휴지통 비움',
 }
 
 /** R3 관리 — ACL 규칙 · 스토리지 사용량 · 감사 로그 (admin 전용) */
@@ -40,6 +41,7 @@ export default function AdminPage() {
         <StorageSection />
         <AclSection />
         <UsageSection />
+        <ContentIndexSection />
         <AuditSection />
       </section>
     </AppLayout>
@@ -228,6 +230,76 @@ function UsageSection() {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+/** 문서 내용 검색 인덱스 — 추출 상태·큐·실패 목록 */
+function ContentIndexSection() {
+  const queryClient = useQueryClient()
+  const { showNotice } = useOverlays()
+  const [busy, setBusy] = useState(false)
+  const q = useQuery({
+    queryKey: ['admin-content-index'],
+    queryFn: () => api<ContentIndexStatusResponse>('/api/admin/content-index'),
+    // 추출이 돌고 있으면 잠깐씩 따라가며 갱신
+    refetchInterval: (query) => (query.state.data?.pending ? 3000 : false),
+  })
+  if (!q.data) return null
+  const d = q.data
+
+  const retry = async () => {
+    setBusy(true)
+    try {
+      const res = await apiJson<{ retried: number }>('/api/admin/content-index/retry', 'POST', {})
+      showNotice(res.retried > 0 ? `${res.retried}건 재추출을 시작했습니다` : '재시도할 실패 항목이 없습니다')
+      queryClient.invalidateQueries({ queryKey: ['admin-content-index'] })
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : '재시도 실패')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="admin-section">
+      <h3 className="page-h">내용 검색 인덱스</h3>
+      {!d.enabled ? (
+        <p style={{ color: 'var(--slate)', fontSize: '.85rem', margin: 0 }}>
+          내용 검색이 꺼져 있습니다 (CONTENT_SEARCH_DISABLED 또는 INDEX_DISABLED)
+        </p>
+      ) : (
+        <>
+          <p className="tight" style={{ color: 'var(--slate)', fontSize: '.85rem', margin: '0 0 10px' }}>
+            추출 완료 <b>{d.counts.ok}</b>건 · 크기 초과 생략 {d.counts.skipped}건 · 실패{' '}
+            {d.counts.error}건
+            {d.pending > 0 && <> · <b>추출 대기 {d.pending}건…</b></>}
+          </p>
+          {d.errors.length > 0 && (
+            <>
+              <table className="lv">
+                <thead>
+                  <tr><th>실패 파일</th><th className="hidem">사유</th><th>시각</th></tr>
+                </thead>
+                <tbody>
+                  {d.errors.map((e) => (
+                    <tr key={e.path}>
+                      <td className="nm mono">{e.path}</td>
+                      <td className="hidem mono">{e.error ?? '—'}</td>
+                      <td className="mono">{formatMtime(e.indexedAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="form-row" style={{ marginTop: 10 }}>
+                <button className="btn primary sm" disabled={busy} onClick={retry}>
+                  실패 전부 재시도
+                </button>
+              </div>
+            </>
+          )}
+        </>
+      )}
     </div>
   )
 }

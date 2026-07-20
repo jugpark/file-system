@@ -28,6 +28,7 @@ export default function ContextMenu({
   onShare,
   onVersions,
   onTogglePin,
+  onCopyLink,
   isPinned,
 }: {
   state: MenuState
@@ -39,6 +40,7 @@ export default function ContextMenu({
   onShare: (e: FsEntry) => void
   onVersions: (e: FsEntry) => void
   onTogglePin: (e: FsEntry) => void
+  onCopyLink: (e: FsEntry) => void
   isPinned: boolean
 }) {
   useEffect(() => {
@@ -90,6 +92,9 @@ export default function ContextMenu({
       </button>
       <button role="menuitem" onClick={via(() => onTogglePin(entry))}>
         <IconInfo className="ci" />{isPinned ? '즐겨찾기 제거' : '즐겨찾기 추가'}
+      </button>
+      <button role="menuitem" onClick={via(() => onCopyLink(entry))}>
+        <IconOpen className="ci" />링크 복사<span className="note">사내용</span>
       </button>
       {!entry.isDir && (
         <button role="menuitem" onClick={via(() => onVersions(entry))}>

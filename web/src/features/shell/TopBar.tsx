@@ -35,7 +35,10 @@ export default function TopBar({
 
   const submitSearch = () => {
     const q = query.trim()
-    if (q) navigate(`/search?q=${encodeURIComponent(q)}`)
+    if (!q) return
+    // 폴더를 보던 중이면 검색 페이지에 "이 폴더 아래" 필터 후보로 전달
+    const from = path && path !== '/' ? `&from=${encodeURIComponent(path)}` : ''
+    navigate(`/search?q=${encodeURIComponent(q)}${from}`)
   }
 
   const segs = path.split('/').filter(Boolean)

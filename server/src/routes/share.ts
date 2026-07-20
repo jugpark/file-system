@@ -114,6 +114,8 @@ export default async function shareRoutes(app: FastifyInstance) {
         .set({ downloadCount: sql`${shareLinks.downloadCount} + 1` })
         .where(eq(shareLinks.token, token))
         .run()
+      // 감사 로그 — 무인증 경로라 행위자는 'share-link', 어느 링크였는지는 detail에
+      recordActivity('download', row.path, 'share-link', { token, sharedBy: row.createdBy })
       const name = path.basename(row.path)
       reply.header(
         'content-disposition',

@@ -27,6 +27,7 @@ import { emitChanged, parentDirOf } from '../events'
 import { indexMovePrefix, indexRemove, indexUpsert } from '../fs/indexer'
 import { deleteMetaPrefix, moveMetaPrefix, recordActivity, setFileMeta } from '../fs/meta'
 import { resolveCollision, resolveRestoreName, validateEntryName } from '../fs/names'
+import { duBytes } from '../fs/purge'
 import { PathError, resolveAbs, toRelPath } from '../fs/safe-path'
 import { stashVersion } from '../fs/versions'
 import { notifyFileActivity } from '../notify'
@@ -286,7 +287,8 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
         if (!stat) throw new PathError('존재하지 않는 경로입니다', 404)
 
         const id = crypto.randomUUID()
-        await fsp.rename(abs, path.join(config.trashDir, id))
+        const trashAbs = path.join(config.trashDir, id)
+        await fsp.rename(abs, trashAbs)
         db.insert(trash)
           .values({
             id,
@@ -294,6 +296,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
             isDir: stat.isDirectory(),
             deletedBy: user.id,
             deletedAt: Date.now(),
+            size: stat.isDirectory() ? await duBytes(trashAbs) : stat.size,
           })
           .run()
         deleteMetaPrefix(rel)
@@ -325,25 +328,36 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
         isDir: trash.isDir,
         deletedBy: trash.deletedBy,
         deletedAt: trash.deletedAt,
+        size: trash.size,
         deletedByName: users.username,
       })
       .from(trash)
       .leftJoin(users, eq(users.id, trash.deletedBy))
       .orderBy(desc(trash.deletedAt))
       .all()
-    const items: TrashItem[] = rows
-      .filter(
-        (r) => r.deletedBy === user.id || resolvePermission(user, r.originalPath, rules) === 'write',
-      )
-      .map((r) => ({
-        id: r.id,
-        originalPath: r.originalPath,
-        name: path.basename(r.originalPath),
-        isDir: r.isDir,
-        deletedByName: r.deletedByName ?? r.deletedBy,
-        deletedAt: r.deletedAt,
-      }))
-    const res: TrashListResponse = { items }
+    const visible = rows.filter(
+      (r) => r.deletedBy === user.id || resolvePermission(user, r.originalPath, rules) === 'write',
+    )
+    // size 컬럼 추가 이전에 지워진 항목은 여기서 한 번 계산해 채운다
+    for (const r of visible) {
+      if (r.size == null) {
+        r.size = await duBytes(path.join(config.trashDir, r.id))
+        db.update(trash).set({ size: r.size }).where(eq(trash.id, r.id)).run()
+      }
+    }
+    const items: TrashItem[] = visible.map((r) => ({
+      id: r.id,
+      originalPath: r.originalPath,
+      name: path.basename(r.originalPath),
+      isDir: r.isDir,
+      deletedByName: r.deletedByName ?? r.deletedBy,
+      deletedAt: r.deletedAt,
+      size: r.size ?? 0,
+    }))
+    const res: TrashListResponse = {
+      items,
+      totalBytes: items.reduce((sum, it) => sum + it.size, 0),
+    }
     return res
   })
 

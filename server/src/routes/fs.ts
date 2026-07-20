@@ -6,7 +6,7 @@ import { config } from '../config'
 import { canSee, resolvePermission } from '../acl/resolve'
 import { loadAclRules } from '../acl/store'
 import { inlineMimeFor, streamInline } from '../fs/inline'
-import { uploaderNamesFor } from '../fs/meta'
+import { recordActivity, uploaderNamesFor } from '../fs/meta'
 import { PathError, resolveAbs, toRelPath } from '../fs/safe-path'
 import { errorBody } from '../types'
 
@@ -113,6 +113,8 @@ export default async function fsRoutes(app: FastifyInstance) {
       if (mime) return streamInline(req, reply, abs, stat, mime, name)
       // 화이트리스트 밖 → attachment로 폴백
     }
+    // 감사 로그 — inline 미리보기는 제외(로그 폭증), 실제 받아가는 것만 기록
+    recordActivity('download', rel, user.id)
     reply.header(
       'content-disposition',
       `attachment; filename="download"; filename*=UTF-8''${encodeURIComponent(name)}`,
@@ -129,7 +131,7 @@ export default async function fsRoutes(app: FastifyInstance) {
       return reply.code(400).send(errorBody('NO_PATHS', '다운로드할 항목이 없습니다'))
     }
     const rules = loadAclRules()
-    const targets: Array<{ abs: string; name: string; isDir: boolean }> = []
+    const targets: Array<{ rel: string; abs: string; name: string; isDir: boolean }> = []
     for (const input of inputs) {
       const rel = toRelPath(input)
       if (resolvePermission(user, rel, rules) === 'none') {
@@ -138,8 +140,10 @@ export default async function fsRoutes(app: FastifyInstance) {
       const abs = resolveAbs(config.storageRoot, rel)
       const stat = await fsp.stat(abs).catch(() => null)
       if (!stat) return reply.code(404).send(errorBody('NOT_FOUND', `존재하지 않음: ${rel}`))
-      targets.push({ abs, name: path.basename(rel), isDir: stat.isDirectory() })
+      targets.push({ rel, abs, name: path.basename(rel), isDir: stat.isDirectory() })
     }
+    // 감사 로그 — 선택한 항목 단위(폴더는 폴더 한 건)
+    for (const t of targets) recordActivity('download', t.rel, user.id, { zip: true })
 
     const { default: archiver } = await import('archiver')
     const archive = archiver('zip', { zlib: { level: 6 } })

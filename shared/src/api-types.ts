@@ -66,6 +66,8 @@ export type ActivityAction =
   | 'share_revoke'
   | 'version_restore'
   | 'settings_change'
+  | 'download'
+  | 'trash_purge'
 
 export interface UploadResponse {
   /** 실제 저장된 경로 (이름 충돌 시 " (1)" 붙은 최종본) */
@@ -129,10 +131,23 @@ export interface TrashItem {
   isDir: boolean
   deletedByName: string
   deletedAt: number
+  /** bytes — 폴더는 삭제 시점 하위 합계 */
+  size: number
 }
 
 export interface TrashListResponse {
   items: TrashItem[]
+  /** 내가 볼 수 있는 항목들의 합계 bytes */
+  totalBytes: number
+}
+
+/** admin 전용 — ids 없으면 전체 비우기 */
+export interface PurgeTrashBody {
+  ids?: string[]
+}
+
+export interface PurgeTrashResponse {
+  purged: number
 }
 
 // ─── 메타데이터 조회 (M3) ───────────────────────────────────
@@ -247,6 +262,20 @@ export interface PinDto {
 
 export interface PinListResponse {
   pins: PinDto[]
+}
+
+/** 검색 필터용 — 로그인한 적 있는 유저 목록 (업로더 선택) */
+export interface UsersResponse {
+  users: Array<{ id: string; username: string }>
+}
+
+/** 내용 검색 인덱스 상태 (admin) */
+export interface ContentIndexStatusResponse {
+  enabled: boolean
+  counts: { ok: number; skipped: number; error: number }
+  /** 추출 큐 대기 건수 */
+  pending: number
+  errors: Array<{ path: string; error: string | null; indexedAt: number }>
 }
 
 /** 서버 설정 (admin) — 스토리지 루트 런타임 변경 */

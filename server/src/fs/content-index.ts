@@ -167,6 +167,45 @@ export function contentWipe(): void {
   sqlite.prepare('DELETE FROM content_fts').run()
 }
 
+// ─── 관리(admin) ────────────────────────────────────────────
+
+/** 상태별 카운트 + 큐 대기 건수 */
+export function contentStats(): { counts: { ok: number; skipped: number; error: number }; pending: number } {
+  const counts = { ok: 0, skipped: 0, error: 0 }
+  if (available) {
+    const rows = sqlite
+      .prepare(`SELECT status, COUNT(*) AS c FROM content_index GROUP BY status`)
+      .all() as Array<{ status: 'ok' | 'skipped' | 'error'; c: number }>
+    for (const r of rows) counts[r.status] = r.c
+  }
+  return { counts, pending: queue.length + (pumping ? 1 : 0) }
+}
+
+/** 추출 실패 목록 (최근 순) */
+export function contentErrors(limit = 50): Array<{ path: string; error: string | null; indexedAt: number }> {
+  if (!available) return []
+  return sqlite
+    .prepare(
+      `SELECT path, error, indexed_at AS indexedAt FROM content_index
+       WHERE status = 'error' ORDER BY indexed_at DESC LIMIT ?`,
+    )
+    .all(limit) as Array<{ path: string; error: string | null; indexedAt: number }>
+}
+
+/** error 상태 전부 재추출 큐에 등록. 등록한 건수 반환 */
+export function contentRetryErrors(): number {
+  if (!contentSearchEnabled()) return 0
+  const rows = sqlite
+    .prepare(`SELECT path FROM content_index WHERE status = 'error'`)
+    .all() as Array<{ path: string }>
+  for (const r of rows) {
+    // 상태 행을 지워 mtime-같음 스킵을 무효화한 뒤 재등록
+    sqlite.prepare(`DELETE FROM content_index WHERE path = ?`).run(r.path)
+    contentEnqueue(r.path, 0)
+  }
+  return rows.length
+}
+
 // ─── 검색 ───────────────────────────────────────────────────
 
 export interface ContentHit {

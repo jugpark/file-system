@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { FsEntry, ListResponse } from '@fs/shared'
 import { IconFile, IconFolder, IconLock, IconTrash, IconUpload } from '../../components/icons'
 import { ApiError, api, downloadUrl, zipUrl } from '../../lib/api'
+import { copyText } from '../../lib/clipboard'
 import { collectDropped } from '../../lib/dropUpload'
 import { formatBytes, formatMtime } from '../../lib/format'
 import { browseTo } from '../../lib/paths'
@@ -65,6 +66,43 @@ export default function Explorer({
     setChecked(new Set())
     anchorRef.current = null
   }, [path])
+
+  // ── 딥링크: ?focus=<이름> 으로 진입하면 해당 행 선택·스크롤·플래시 ──
+  const [params, setParams] = useSearchParams()
+  const [flashPath, setFlashPath] = useState<string | null>(null)
+  useEffect(() => {
+    const focusName = params.get('focus')
+    if (!focusName || !q.data) return
+    // 파라미터는 1회성 — 새로고침/이동 시 반복 강조 방지
+    setParams(
+      (p) => {
+        p.delete('focus')
+        return p
+      },
+      { replace: true },
+    )
+    const entry = q.data.entries.find((e) => e.name === focusName)
+    if (!entry) {
+      showNotice(`"${focusName}" 항목이 이 폴더에 없습니다 (이동·삭제됐을 수 있음)`)
+      return
+    }
+    setChecked(new Set([entry.path]))
+    anchorRef.current = entry.path
+    onSelect(entry)
+    setFlashPath(entry.path)
+    const t = setTimeout(() => setFlashPath(null), 2600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q.data])
+
+  /** 사내용 딥링크 — 폴더는 그 폴더로, 파일은 부모 폴더+focus로 */
+  const copyLink = async (entry: FsEntry) => {
+    const url = entry.isDir
+      ? `${location.origin}${browseTo(entry.path)}`
+      : `${location.origin}${browseTo(path)}?focus=${encodeURIComponent(entry.name)}`
+    const ok = await copyText(url)
+    showNotice(ok ? '링크를 복사했습니다' : '복사에 실패했습니다 — 주소창에서 직접 복사하세요')
+  }
 
   const openEntry = (entry: FsEntry) => {
     if (entry.isDir) return navigate(browseTo(entry.path))
@@ -233,7 +271,13 @@ export default function Explorer({
             return (
               <tr
                 key={entry.path}
-                className={checked.has(entry.path) ? 'sel' : ''}
+                className={
+                  (checked.has(entry.path) ? 'sel' : '') +
+                  (flashPath === entry.path ? ' flash' : '')
+                }
+                ref={(el) => {
+                  if (el && flashPath === entry.path) el.scrollIntoView({ block: 'center' })
+                }}
                 onClick={(ev) => handleSelect(entry, ev)}
                 onDoubleClick={() => openEntry(entry)}
                 onContextMenu={(ev) => openMenu(entry, ev)}
@@ -349,6 +393,7 @@ export default function Explorer({
           onShare={(entry) => setDialog({ type: 'share', entry })}
           onVersions={(entry) => setDialog({ type: 'versions', entry })}
           onTogglePin={(entry) => void togglePin(entry.path)}
+          onCopyLink={(entry) => void copyLink(entry)}
           isPinned={pinnedSet.has(menu.entry.path)}
         />
       )}

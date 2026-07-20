@@ -34,6 +34,7 @@ export const activityLog = sqliteTable('activity_log', {
     enum: [
       'upload', 'mkdir', 'rename', 'move', 'copy', 'trash', 'restore',
       'acl_change', 'share_create', 'share_revoke', 'version_restore', 'settings_change',
+      'download', 'trash_purge',
     ],
   }).notNull(),
   detailJson: text('detail_json'),
@@ -68,6 +69,8 @@ export const trash = sqliteTable('trash', {
   isDir: integer('is_dir', { mode: 'boolean' }).notNull(),
   deletedBy: text('deleted_by').notNull(),
   deletedAt: integer('deleted_at').notNull(),
+  /** bytes — 컬럼 추가 이전 행은 null, 목록 조회 시 lazy 백필 */
+  size: integer('size'),
 })
 
 export const folderAcl = sqliteTable('folder_acl', {
