@@ -43,14 +43,24 @@ export const activityLog = sqliteTable('activity_log', {
 
 export const shareLinks = sqliteTable('share_links', {
   token: text('token').primaryKey(),
+  /** download=파일 받아가기 / upload=파일 요청(폴더로 무인증 업로드) */
+  kind: text('kind', { enum: ['download', 'upload'] }).notNull().default('download'),
   path: text('path').notNull(),
   createdBy: text('created_by').notNull(),
   createdAt: integer('created_at').notNull(),
   expiresAt: integer('expires_at').notNull(),
+  /** download=다운로드 횟수, upload=받은 파일 수 */
   downloadCount: integer('download_count').notNull().default(0),
 })
 
 export const pinnedPaths = sqliteTable('pinned_paths', {
+  userId: text('user_id').notNull(),
+  path: text('path').notNull(),
+  createdAt: integer('created_at').notNull(),
+})
+
+/** 폴더 구독 — 구독 폴더 아래 업로드/삭제 시 Discord DM (본인 행동은 제외) */
+export const subscriptions = sqliteTable('subscriptions', {
   userId: text('user_id').notNull(),
   path: text('path').notNull(),
   createdAt: integer('created_at').notNull(),

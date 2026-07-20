@@ -23,6 +23,7 @@ import healthRoutes from './routes/health'
 import meRoutes from './routes/me'
 import metaRoutes from './routes/meta'
 import pinsRoutes from './routes/pins'
+import subscriptionsRoutes from './routes/subscriptions'
 import shareRoutes from './routes/share'
 import thumbnailRoutes from './routes/thumbnail'
 import versionsRoutes from './routes/versions'
@@ -136,6 +137,7 @@ await app.register(thumbnailRoutes)
 await app.register(versionsRoutes)
 await app.register(shareRoutes)
 await app.register(pinsRoutes)
+await app.register(subscriptionsRoutes)
 await app.register(adminRoutes)
 await app.register(eventsRoutes)
 await app.register(healthRoutes)

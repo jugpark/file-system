@@ -11,6 +11,7 @@ import { browseTo } from '../../lib/paths'
 import { DeleteDialog, MoveCopyDialog, RenameDialog } from '../actions/dialogs'
 import ShareDialog from '../actions/ShareDialog'
 import { usePins } from '../actions/usePins'
+import { useSubscriptions } from '../actions/useSubscriptions'
 import VersionsDialog from '../actions/VersionsDialog'
 import { useOverlays } from '../overlays/Overlays'
 import PreviewModal, { canPreview } from '../preview/PreviewModal'
@@ -40,6 +41,7 @@ export default function Explorer({
   const navigate = useNavigate()
   const { enqueueUploads, showNotice } = useOverlays()
   const { pinnedSet, toggle: togglePin } = usePins()
+  const { subscribedSet, toggle: toggleSubscribe } = useSubscriptions()
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [dialog, setDialog] = useState<DialogState>(null)
   const [preview, setPreview] = useState<FsEntry | null>(null)
@@ -394,7 +396,17 @@ export default function Explorer({
           onVersions={(entry) => setDialog({ type: 'versions', entry })}
           onTogglePin={(entry) => void togglePin(entry.path)}
           onCopyLink={(entry) => void copyLink(entry)}
+          onToggleSubscribe={(entry) =>
+            void toggleSubscribe(entry.path).then((subscribing) =>
+              showNotice(
+                subscribing
+                  ? `"${entry.name}" 알림 구독 — 변경 시 Discord DM을 보냅니다`
+                  : `"${entry.name}" 알림 구독을 해제했습니다`,
+              ),
+            )
+          }
           isPinned={pinnedSet.has(menu.entry.path)}
+          isSubscribed={subscribedSet.has(menu.entry.path)}
         />
       )}
 

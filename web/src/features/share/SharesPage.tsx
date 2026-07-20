@@ -1,7 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { ShareListResponse } from '@fs/shared'
-import { IconFile, IconOpen } from '../../components/icons'
+import { IconFile, IconFolder, IconOpen } from '../../components/icons'
 import { api } from '../../lib/api'
+import { copyText } from '../../lib/clipboard'
 import { formatMtime } from '../../lib/format'
 import { useMe } from '../auth/useMe'
 import { useOverlays } from '../overlays/Overlays'
@@ -18,8 +19,8 @@ export default function SharesPage() {
   })
 
   const copy = async (url: string) => {
-    await navigator.clipboard.writeText(url).catch(() => {})
-    showNotice('링크를 복사했습니다')
+    const ok = await copyText(url)
+    showNotice(ok ? '링크를 복사했습니다' : '복사 실패 — 링크를 직접 선택해 복사하세요')
   }
   const revoke = async (token: string) => {
     try {
@@ -39,9 +40,9 @@ export default function SharesPage() {
       info={
         <aside className="info">
           <div className="placeholder">
-            링크를 아는 누구나 로그인 없이
+            공유 링크=로그인 없이 다운로드
             <br />
-            다운로드할 수 있습니다
+            파일 요청=로그인 없이 이 폴더로 전송
           </div>
         </aside>
       }
@@ -51,17 +52,18 @@ export default function SharesPage() {
           <div className="state-box">
             <IconOpen />
             <span className="t">공유 링크가 없습니다</span>
-            <span>파일 우클릭 → '공유 링크'로 만들 수 있습니다</span>
+            <span>파일 우클릭 → '공유 링크', 폴더 우클릭 → '파일 요청 링크'</span>
           </div>
         )}
         {q.data && q.data.links.length > 0 && (
           <table className="lv">
             <thead>
               <tr>
-                <th>파일</th>
+                <th>대상</th>
+                <th>종류</th>
                 <th className="hidem">경로</th>
                 <th>만료</th>
-                <th>다운로드</th>
+                <th>사용</th>
                 <th></th>
               </tr>
             </thead>
@@ -69,12 +71,21 @@ export default function SharesPage() {
               {q.data.links.map((link) => (
                 <tr key={link.token} style={link.expired ? { opacity: 0.5 } : undefined}>
                   <td className="nm">
-                    <span className="fic"><IconFile /></span>
+                    <span className={'fic' + (link.kind === 'upload' ? ' f' : '')}>
+                      {link.kind === 'upload' ? <IconFolder /> : <IconFile />}
+                    </span>
                     {link.name}
+                  </td>
+                  <td>
+                    <span className={'tag-perm ' + (link.kind === 'upload' ? 'ed' : 'rd')}>
+                      {link.kind === 'upload' ? '파일 요청' : '다운로드'}
+                    </span>
                   </td>
                   <td className="hidem mono">{link.path}</td>
                   <td className="mono">{link.expired ? '만료됨' : formatMtime(link.expiresAt)}</td>
-                  <td className="mono">{link.downloadCount}회</td>
+                  <td className="mono">
+                    {link.kind === 'upload' ? `${link.downloadCount}개 받음` : `${link.downloadCount}회`}
+                  </td>
                   <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     {!link.expired && (
                       <button className="btn ghost sm" onClick={() => copy(link.url)}>복사</button>

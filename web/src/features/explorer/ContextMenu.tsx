@@ -29,7 +29,9 @@ export default function ContextMenu({
   onVersions,
   onTogglePin,
   onCopyLink,
+  onToggleSubscribe,
   isPinned,
+  isSubscribed,
 }: {
   state: MenuState
   onClose: () => void
@@ -41,7 +43,9 @@ export default function ContextMenu({
   onVersions: (e: FsEntry) => void
   onTogglePin: (e: FsEntry) => void
   onCopyLink: (e: FsEntry) => void
+  onToggleSubscribe: (e: FsEntry) => void
   isPinned: boolean
+  isSubscribed: boolean
 }) {
   useEffect(() => {
     const close = () => onClose()
@@ -96,16 +100,22 @@ export default function ContextMenu({
       <button role="menuitem" onClick={via(() => onCopyLink(entry))}>
         <IconOpen className="ci" />링크 복사<span className="note">사내용</span>
       </button>
+      {entry.isDir && (
+        <button role="menuitem" onClick={via(() => onToggleSubscribe(entry))}>
+          <IconClock className="ci" />{isSubscribed ? '알림 구독 해제' : '알림 구독'}
+          <span className="note">DM</span>
+        </button>
+      )}
       {!entry.isDir && (
         <button role="menuitem" onClick={via(() => onVersions(entry))}>
           <IconClock className="ci" />버전 기록
         </button>
       )}
-      {!entry.isDir && (
-        <button role="menuitem" disabled={!writable} onClick={via(() => onShare(entry))}>
-          <IconOpen className="ci" />공유 링크<span className="note">외부 공유</span>
-        </button>
-      )}
+      <button role="menuitem" disabled={!writable} onClick={via(() => onShare(entry))}>
+        <IconOpen className="ci" />
+        {entry.isDir ? '파일 요청 링크' : '공유 링크'}
+        <span className="note">{entry.isDir ? '외부 수신' : '외부 공유'}</span>
+      </button>
       <div className="div" role="separator" />
       <button className="del" role="menuitem" disabled={!writable} onClick={via(() => onDelete(entry))}>
         <IconTrash className="ci" />삭제<span className="note">휴지통으로</span>

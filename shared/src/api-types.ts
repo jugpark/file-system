@@ -220,20 +220,27 @@ export interface AdminActivityResponse {
   items: AdminActivityItem[]
 }
 
+/** download=파일 받아가기(파일 전용) / upload=파일 요청(폴더 전용, 외부인이 이 폴더로 업로드) */
+export type ShareKind = 'download' | 'upload'
+
 export interface CreateShareBody {
   path: string
   /** 만료까지 일수 (1/7/30) */
   expiresDays: number
+  /** 생략 시 download */
+  kind?: ShareKind
 }
 
 export interface ShareLinkDto {
   token: string
+  kind: ShareKind
   path: string
   name: string
   /** 전체 공유 URL */
   url: string
   createdAt: number
   expiresAt: number
+  /** download=다운로드 횟수, upload=받은 파일 수 */
   downloadCount: number
   expired: boolean
 }
@@ -262,6 +269,11 @@ export interface PinDto {
 
 export interface PinListResponse {
   pins: PinDto[]
+}
+
+/** 폴더 구독 — 구독한 폴더 아래 업로드/삭제 시 Discord DM */
+export interface SubscriptionListResponse {
+  subscriptions: Array<{ path: string; name: string }>
 }
 
 /** 검색 필터용 — 로그인한 적 있는 유저 목록 (업로더 선택) */

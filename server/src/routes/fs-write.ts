@@ -125,7 +125,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
       recordActivity('upload', destRel, user.id, { size, ...(replaced ? { replaced: true } : {}) })
       indexUpsert(destRel, { isDir: false, size, mtimeMs: Date.now() })
       emitChanged(dirRel)
-      notifyFileActivity('upload', user.username, destRel)
+      notifyFileActivity('upload', user.username, destRel, user.id)
       const res: UploadResponse = { path: destRel, name: finalName }
       return res
     } catch (err) {
@@ -303,7 +303,7 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
         indexRemove(rel)
         recordActivity('trash', rel, user.id, { trashId: id })
         emitChanged(parentOf(rel))
-        notifyFileActivity('trash', user.username, rel)
+        notifyFileActivity('trash', user.username, rel, user.id)
         results.push({ path: rel, ok: true })
       } catch (err) {
         results.push({

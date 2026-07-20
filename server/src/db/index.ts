@@ -45,11 +45,18 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 CREATE TABLE IF NOT EXISTS share_links (
   token TEXT PRIMARY KEY,
+  kind TEXT NOT NULL DEFAULT 'download' CHECK (kind IN ('download','upload')),
   path TEXT NOT NULL,
   created_by TEXT NOT NULL,
   created_at INTEGER NOT NULL,
   expires_at INTEGER NOT NULL,
   download_count INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS subscriptions (
+  user_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (user_id, path)
 );
 CREATE TABLE IF NOT EXISTS pinned_paths (
   user_id TEXT NOT NULL,
@@ -93,32 +100,49 @@ CREATE TABLE IF NOT EXISTS folder_acl (
     .prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'activity_log'`)
     .get() as { sql: string } | undefined
   if (master && !master.sql.includes('trash_purge')) {
-    sqlite.exec(`
-      BEGIN;
-      ALTER TABLE activity_log RENAME TO activity_log_old;
-      CREATE TABLE activity_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        path TEXT NOT NULL,
-        actor_id TEXT NOT NULL,
-        action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore','settings_change','download','trash_purge')),
-        detail_json TEXT,
-        created_at INTEGER NOT NULL
-      );
-      INSERT INTO activity_log SELECT * FROM activity_log_old;
-      DROP TABLE activity_log_old;
-      CREATE INDEX IF NOT EXISTS idx_activity_path ON activity_log(path);
-      COMMIT;
-    `)
+    try {
+      sqlite.exec(`
+        BEGIN;
+        ALTER TABLE activity_log RENAME TO activity_log_old;
+        CREATE TABLE activity_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          path TEXT NOT NULL,
+          actor_id TEXT NOT NULL,
+          action TEXT NOT NULL CHECK (action IN ('upload','mkdir','rename','move','copy','trash','restore','acl_change','share_create','share_revoke','version_restore','settings_change','download','trash_purge')),
+          detail_json TEXT,
+          created_at INTEGER NOT NULL
+        );
+        INSERT INTO activity_log SELECT * FROM activity_log_old;
+        DROP TABLE activity_log_old;
+        CREATE INDEX IF NOT EXISTS idx_activity_path ON activity_log(path);
+        COMMIT;
+      `)
+    } catch {
+      // 병렬 기동 경합에서 진 쪽 — 열린 트랜잭션만 정리 (이긴 쪽이 이미 재생성함)
+      if (sqlite.inTransaction) sqlite.exec('ROLLBACK')
+    }
+  }
+}
+
+/**
+ * 컬럼 추가 마이그레이션 — 병렬 프로세스(vitest 워커 등)가 같은 ALTER를 동시에
+ * 시도하면 한쪽이 duplicate column으로 죽는다. 존재 확인 후에도 실패는 무해하므로 삼킨다.
+ */
+function addColumnIfMissing(table: string, column: string, ddl: string): void {
+  const cols = sqlite.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>
+  if (cols.some((c) => c.name === column)) return
+  try {
+    sqlite.exec(`ALTER TABLE ${table} ADD COLUMN ${ddl}`)
+  } catch {
+    // 경합에서 진 쪽 — 이미 추가됨
   }
 }
 
 // 마이그레이션: trash.size (2026-07-20 휴지통 용량 표시)
-{
-  const cols = sqlite.prepare(`PRAGMA table_info(trash)`).all() as Array<{ name: string }>
-  if (!cols.some((c) => c.name === 'size')) {
-    sqlite.exec(`ALTER TABLE trash ADD COLUMN size INTEGER`)
-  }
-}
+addColumnIfMissing('trash', 'size', 'size INTEGER')
+
+// 마이그레이션: share_links.kind (2026-07-20 파일 요청 링크)
+addColumnIfMissing('share_links', 'kind', `kind TEXT NOT NULL DEFAULT 'download'`)
 
 export const db = drizzle(sqlite, { schema })
 export { sqlite }
