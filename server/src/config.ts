@@ -38,7 +38,8 @@ export const config = {
   port: Number(env.PORT ?? 3000),
   /** 바인딩 주소 — 본인 PC에서만 볼 때는 127.0.0.1 권장 */
   host: env.HOST ?? '0.0.0.0',
-  baseUrl: (env.BASE_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
+  /** 공유/파일요청 링크 URL의 기준 — dev는 vite(:6001), 배포는 실 도메인 필수 */
+  baseUrl: (env.BASE_URL ?? 'http://localhost:6001').replace(/\/$/, ''),
   sessionSecret: env.SESSION_SECRET ?? 'dev-only-insecure-secret',
   storageRoot: path.resolve(env.STORAGE_ROOT ?? './data/storage'),
   /**

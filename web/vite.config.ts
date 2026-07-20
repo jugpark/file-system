@@ -11,6 +11,10 @@ export default defineConfig({
     proxy: {
       // dev에서 API는 Fastify(:3000)로 프록시 — OAuth redirect도 이 경유로 동작
       '/api': 'http://localhost:3000',
+      // 공개 링크(무인증) 경로도 서버가 처리 — 공유 다운로드 + 파일 요청 페이지/수신
+      '/share': 'http://localhost:3000',
+      '/share-upload': 'http://localhost:3000',
+      '/share-upload.js': 'http://localhost:3000',
     },
   },
   build: {
