@@ -28,6 +28,7 @@ import { indexMovePrefix, indexRemove, indexUpsert } from '../fs/indexer'
 import { deleteMetaPrefix, moveMetaPrefix, recordActivity, setFileMeta } from '../fs/meta'
 import { resolveCollision, resolveRestoreName, validateEntryName } from '../fs/names'
 import { duBytes } from '../fs/purge'
+import { gateUpload } from '../fs/scan'
 import { PathError, resolveAbs, toRelPath } from '../fs/safe-path'
 import { stashVersion } from '../fs/versions'
 import { notifyFileActivity } from '../notify'
@@ -106,6 +107,13 @@ export default async function fsWriteRoutes(app: FastifyInstance) {
         throw new PathError(`파일이 최대 크기(${config.maxUploadMb}MB)를 초과했습니다`, 413)
       }
       const size = (await fsp.stat(tmpPath)).size
+
+      // 바이러스 스캔 — 인증 업로드는 스캐너 장애 시 통과(fail-open)
+      const scan = await gateUpload(tmpPath, false, req.log)
+      if (!scan.ok) {
+        await fsp.unlink(tmpPath).catch(() => {})
+        return reply.code(422).send(errorBody('INFECTED', scan.reason ?? '업로드가 거부되었습니다'))
+      }
 
       // 같은 이름 파일이 있으면 기존본을 버전으로 보관하고 이름을 승계 (R4 버전 보관).
       // 같은 이름 폴더면 이름을 바꿔 회피

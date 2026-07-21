@@ -27,11 +27,15 @@ export const TEXT_EXTS = new Set([
   'yml', 'yaml', 'toml', 'ini', 'css', 'sql', 'env', 'conf',
 ])
 
-export type PreviewKind = 'image' | 'pdf' | 'video' | 'audio' | 'text'
+/** 텍스트 추출 미리보기 대상 (오피스·한글). 서버 extract.ts가 본문을 뽑아 준다 */
+export const DOC_EXTS = new Set(['docx', 'xlsx', 'pptx', 'hwpx'])
+
+export type PreviewKind = 'image' | 'pdf' | 'video' | 'audio' | 'text' | 'doc'
 
 /**
  * 브라우저 미리보기 종류. null=미리보기 불가(다운로드만).
  * ⚠ 보안 불변식: html/svg/htm은 어떤 경우에도 inline 렌더 금지(저장 XSS) — 여기 절대 넣지 말 것.
+ * 'doc'=원본을 렌더하지 않고 추출한 텍스트만 보여준다(오피스/한글).
  */
 export function previewKind(name: string): PreviewKind | null {
   const ext = extOfName(name)
@@ -40,7 +44,13 @@ export function previewKind(name: string): PreviewKind | null {
   if (VIDEO_EXTS.has(ext)) return 'video'
   if (AUDIO_EXTS.has(ext)) return 'audio'
   if (TEXT_EXTS.has(ext)) return 'text'
+  if (DOC_EXTS.has(ext)) return 'doc'
   return null
+}
+
+/** PDF 첫 페이지 썸네일까지 지원하는지 (그리드 뷰용) */
+export function hasThumbnail(name: string): boolean {
+  return isImageName(name) || extOfName(name) === 'pdf'
 }
 
 /** 미리보기로 텍스트를 그대로 열 수 있는 최대 크기 */

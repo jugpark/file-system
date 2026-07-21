@@ -167,6 +167,15 @@ export function contentWipe(): void {
   sqlite.prepare('DELETE FROM content_fts').run()
 }
 
+/** 캐시된 추출 본문 (없으면 null) — 미리보기가 재추출을 피하려고 먼저 조회 */
+export function cachedContent(relPath: string): string | null {
+  if (!available) return null
+  const row = sqlite.prepare('SELECT content FROM content_fts WHERE path = ?').get(relPath) as
+    | { content: string }
+    | undefined
+  return row?.content ?? null
+}
+
 // ─── 관리(admin) ────────────────────────────────────────────
 
 /** 상태별 카운트 + 큐 대기 건수 */

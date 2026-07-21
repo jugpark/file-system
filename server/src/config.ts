@@ -71,6 +71,12 @@ export const config = {
   contentSearchDisabled: env.CONTENT_SEARCH_DISABLED === 'true',
   /** 이 크기(MB)를 넘는 파일은 내용 추출을 건너뜀 */
   contentMaxMb: Number(env.CONTENT_MAX_MB ?? 20),
+  /** ClamAV clamd 호스트. 설정 시 업로드를 스캔 (미설정=스캔 비활성) */
+  clamavHost: env.CLAMAV_HOST ?? '',
+  clamavPort: Number(env.CLAMAV_PORT ?? 3310),
+  clamavTimeoutMs: Number(env.CLAMAV_TIMEOUT_MS ?? 30_000),
+  /** true면 무인증(파일 요청 링크) 업로드는 스캐너 장애 시 거부 (기본 거부) */
+  scanFailClosed: env.SCAN_FAIL_CLOSED !== 'false',
   /** 이 Discord role 보유자는 admin — 전 경로 접근(남의 home은 read), 관리 API 사용 */
   adminRoleId: env.ADMIN_ROLE_ID ?? '',
   /** 설정 시 공유 폴더 업로드/삭제·디스크 경고를 이 웹훅으로 알림 */

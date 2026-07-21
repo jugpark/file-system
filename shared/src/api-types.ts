@@ -141,6 +141,14 @@ export interface TrashListResponse {
   totalBytes: number
 }
 
+/** 오피스/한글 문서 텍스트 미리보기 */
+export interface PreviewTextResponse {
+  /** 추출한 본문 (없으면 빈 문자열) */
+  text: string
+  /** 상한 절단 여부 */
+  truncated: boolean
+}
+
 /** admin 전용 — ids 없으면 전체 비우기 */
 export interface PurgeTrashBody {
   ids?: string[]

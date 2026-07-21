@@ -5,6 +5,9 @@ import type { FsEntry, ListResponse, TreeNode, TreeResponse } from '@fs/shared'
 import { config } from '../config'
 import { canSee, resolvePermission } from '../acl/resolve'
 import { loadAclRules } from '../acl/store'
+import type { PreviewTextResponse } from '@fs/shared'
+import { cachedContent } from '../fs/content-index'
+import { extractableKind, extractFileText, MAX_TEXT_CHARS } from '../fs/extract'
 import { inlineMimeFor, streamInline } from '../fs/inline'
 import { recordActivity, uploaderNamesFor } from '../fs/meta'
 import { PathError, resolveAbs, toRelPath } from '../fs/safe-path'
@@ -120,6 +123,40 @@ export default async function fsRoutes(app: FastifyInstance) {
       `attachment; filename="download"; filename*=UTF-8''${encodeURIComponent(name)}`,
     )
     return reply.sendFile(rel.slice(1), config.storageRoot)
+  })
+
+  /**
+   * 오피스/한글 문서 텍스트 미리보기 — 원본을 렌더하지 않고 추출 본문만 준다.
+   * 검색용으로 이미 뽑아둔 게 있으면(content_fts) 그걸 쓰고, 없으면 즉석 추출.
+   */
+  app.get('/api/fs/preview-text', async (req, reply) => {
+    const user = req.user!
+    const rel = toRelPath((req.query as { path?: string }).path)
+    if (resolvePermission(user, rel, loadAclRules()) === 'none') {
+      return reply.code(403).send(errorBody('FORBIDDEN', '접근 권한이 없습니다'))
+    }
+    const kind = extractableKind(rel)
+    if (!kind) {
+      return reply.code(415).send(errorBody('NOT_EXTRACTABLE', '미리볼 수 없는 형식입니다'))
+    }
+    const abs = resolveAbs(config.storageRoot, rel)
+    const stat = await fsp.stat(abs).catch(() => null)
+    if (!stat?.isFile()) {
+      return reply.code(404).send(errorBody('NOT_FOUND', '존재하지 않는 파일입니다'))
+    }
+    let text = cachedContent(rel)
+    if (text == null) {
+      try {
+        text = await extractFileText(abs, kind)
+      } catch {
+        return reply.code(422).send(errorBody('EXTRACT_FAILED', '내용을 추출하지 못했습니다'))
+      }
+    }
+    const res: PreviewTextResponse = {
+      text,
+      truncated: text.length >= MAX_TEXT_CHARS,
+    }
+    return res
   })
 
   /** 여러 항목/폴더를 zip 스트리밍으로 다운로드 (임시 파일 없음) */

@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react'
-import { isImageName, type FsEntry } from '@fs/shared'
+import { hasThumbnail, type FsEntry } from '@fs/shared'
 import { IconFile, IconFolder, IconLock } from '../../components/icons'
 import { thumbnailUrl } from '../../lib/api'
 
@@ -38,7 +38,7 @@ export default function GridView({
             onContextMenu={(ev) => onMenu(entry, ev)}
           >
             <div className="gthumb">
-              {!entry.isDir && isImageName(entry.name) ? (
+              {!entry.isDir && hasThumbnail(entry.name) ? (
                 <img
                   loading="lazy"
                   src={thumbnailUrl(entry.path)}

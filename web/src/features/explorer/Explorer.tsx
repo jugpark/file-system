@@ -432,7 +432,14 @@ export default function Explorer({
       {dialog?.type === 'versions' && (
         <VersionsDialog entry={dialog.entry} onClose={() => setDialog(null)} />
       )}
-      {preview && <PreviewModal entry={preview} onClose={() => setPreview(null)} />}
+      {preview && (
+        <PreviewModal
+          entry={preview}
+          siblings={entries.filter(canPreview)}
+          onNavigate={setPreview}
+          onClose={() => setPreview(null)}
+        />
+      )}
     </section>
   )
 }

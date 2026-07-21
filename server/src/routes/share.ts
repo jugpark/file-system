@@ -15,6 +15,7 @@ import { emitChanged } from '../events'
 import { indexUpsert } from '../fs/indexer'
 import { recordActivity } from '../fs/meta'
 import { resolveCollision, validateEntryName } from '../fs/names'
+import { gateUpload } from '../fs/scan'
 import { PathError, resolveAbs, toRelPath } from '../fs/safe-path'
 import { notifyFileActivity } from '../notify'
 import { errorBody } from '../types'
@@ -260,6 +261,14 @@ export default async function shareRoutes(app: FastifyInstance) {
           throw new PathError(`파일이 최대 크기(${config.maxUploadMb}MB)를 초과했습니다`, 413)
         }
         const size = (await fsp.stat(tmpPath)).size
+
+        // 바이러스 스캔 — 무인증 경로라 스캐너 장애 시 기본 차단(fail-closed)
+        const scan = await gateUpload(tmpPath, true, req.log)
+        if (!scan.ok) {
+          await fsp.unlink(tmpPath).catch(() => {})
+          return reply.code(422).send(errorBody('INFECTED', scan.reason ?? '업로드가 거부되었습니다'))
+        }
+
         const finalName = await resolveCollision(dirAbs, name)
         const destRel = row.path === '/' ? `/${finalName}` : `${row.path}/${finalName}`
         await fsp.rename(tmpPath, path.join(dirAbs, finalName))
