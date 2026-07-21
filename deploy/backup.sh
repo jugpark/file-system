@@ -11,6 +11,22 @@ STORAGE_ROOT="${STORAGE_ROOT:-./data/storage}"
 BACKUP_DIR="${BACKUP_DIR:-/backup/file-system}"
 KEEP_DAYS="${KEEP_DAYS:-7}"
 
+# 앱(관리 화면)이 읽는 상태 파일 — 기본은 DB 옆(서버 config.backupStatusPath와 자동 정렬)
+STATUS_PATH="${BACKUP_STATUS_PATH:-${DB_PATH%/*}/backup-status.json}"
+
+# 성공/실패 무관하게 마지막 실행 결과를 남긴다 (관리 화면 가시성)
+write_status() {
+  local ok="$1" size="$2" dest="$3" err="$4"
+  local now_ms; now_ms="$(($(date +%s) * 1000))"
+  mkdir -p "${STATUS_PATH%/*}" 2>/dev/null || true
+  printf '{"ok":%s,"at":%s,"size":%s,"dest":%s,"error":%s}\n' \
+    "$ok" "$now_ms" "\"$size\"" "\"$dest\"" "\"$err\"" > "$STATUS_PATH" 2>/dev/null || true
+}
+on_error() {
+  write_status false "" "" "백업 실패 (line $1)"
+}
+trap 'on_error "$LINENO"' ERR
+
 STAMP="$(date +%Y%m%d_%H%M%S)"
 DEST="$BACKUP_DIR/$STAMP"
 mkdir -p "$DEST"
@@ -30,4 +46,6 @@ ln -sfn "$DEST" "$LATEST"
 # 3) 보존 기간 초과분 정리
 find "$BACKUP_DIR" -maxdepth 1 -type d -name '20*' -mtime +"$KEEP_DAYS" -exec rm -rf {} +
 
-echo "backup done: $DEST ($(du -sh "$DEST" | cut -f1))"
+SIZE="$(du -sh "$DEST" | cut -f1)"
+write_status true "$SIZE" "$DEST" ""
+echo "backup done: $DEST ($SIZE)"

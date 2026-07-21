@@ -14,6 +14,7 @@ import { usePins } from '../actions/usePins'
 import { useSubscriptions } from '../actions/useSubscriptions'
 import VersionsDialog from '../actions/VersionsDialog'
 import { useOverlays } from '../overlays/Overlays'
+import AccessRequestDialog from '../access/AccessRequestDialog'
 import PreviewModal, { canPreview } from '../preview/PreviewModal'
 import ContextMenu, { type MenuState } from './ContextMenu'
 import GridView from './GridView'
@@ -45,6 +46,7 @@ export default function Explorer({
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [dialog, setDialog] = useState<DialogState>(null)
   const [preview, setPreview] = useState<FsEntry | null>(null)
+  const [accessReq, setAccessReq] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const [checked, setChecked] = useState<Set<string>>(new Set())
   const anchorRef = useRef<string | null>(null)
@@ -223,16 +225,21 @@ export default function Explorer({
     }
     if (q.isError) {
       const err = q.error
-      const msg =
-        err instanceof ApiError && err.status === 403
-          ? '접근 권한이 없습니다'
-          : err instanceof ApiError && err.status === 404
-            ? '존재하지 않는 폴더입니다'
-            : '목록을 불러오지 못했습니다'
+      const forbidden = err instanceof ApiError && err.status === 403
+      const msg = forbidden
+        ? '접근 권한이 없습니다'
+        : err instanceof ApiError && err.status === 404
+          ? '존재하지 않는 폴더입니다'
+          : '목록을 불러오지 못했습니다'
       return (
         <div className="state-box">
           <IconFolder />
           <span className="t">{msg}</span>
+          {forbidden && path !== '/' && (
+            <button className="btn primary sm" style={{ marginTop: 6 }} onClick={() => setAccessReq(path)}>
+              이 폴더 접근 요청
+            </button>
+          )}
         </div>
       )
     }
@@ -439,6 +446,9 @@ export default function Explorer({
           onNavigate={setPreview}
           onClose={() => setPreview(null)}
         />
+      )}
+      {accessReq && (
+        <AccessRequestDialog path={accessReq} onClose={() => setAccessReq(null)} />
       )}
     </section>
   )

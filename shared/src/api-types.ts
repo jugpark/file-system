@@ -284,6 +284,58 @@ export interface SubscriptionListResponse {
   subscriptions: Array<{ path: string; name: string }>
 }
 
+// ─── 열린 고리 닫기 (2026-07-21) ───────────────────────────
+
+/** 접근 요청 — 못 보는/읽기전용 폴더 권한 신청 */
+export interface CreateAccessRequestBody {
+  path: string
+  permission: 'read' | 'write'
+  note?: string
+}
+
+export interface AccessRequestDto {
+  id: number
+  path: string
+  permission: 'read' | 'write'
+  note: string | null
+  status: 'pending' | 'approved' | 'denied'
+  createdAt: number
+  /** admin 뷰에서만 채워짐 */
+  requesterName?: string
+  resolvedByName?: string | null
+  resolvedAt?: number | null
+}
+
+export interface AccessRequestListResponse {
+  requests: AccessRequestDto[]
+}
+
+/** 활성 세션 (로그인 기기) */
+export interface SessionDto {
+  id: string
+  userAgent: string | null
+  createdAt: number
+  lastSeenAt: number | null
+  expiresAt: number
+  /** 지금 이 요청을 보낸 세션인가 */
+  current: boolean
+}
+
+export interface SessionListResponse {
+  sessions: SessionDto[]
+}
+
+/** 백업 상태 — backup.sh가 남긴 마지막 실행 결과 */
+export interface BackupStatusResponse {
+  /** 상태 파일이 있는가 */
+  known: boolean
+  ok?: boolean
+  at?: number
+  size?: string
+  dest?: string
+  error?: string
+}
+
 /** 검색 필터용 — 로그인한 적 있는 유저 목록 (업로더 선택) */
 export interface UsersResponse {
   users: Array<{ id: string; username: string }>

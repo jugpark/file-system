@@ -81,6 +81,14 @@ export const config = {
   adminRoleId: env.ADMIN_ROLE_ID ?? '',
   /** 설정 시 공유 폴더 업로드/삭제·디스크 경고를 이 웹훅으로 알림 */
   webhookUrl: env.DISCORD_WEBHOOK_URL ?? '',
+  /** 주간 활동 다이제스트 — 웹훅 설정 시 이 요일(0=일~6=토)·시각에 1회 전송. 끄려면 DIGEST_DAY=-1 */
+  digestDay: Number(env.DIGEST_DAY ?? 1),
+  digestHour: Number(env.DIGEST_HOUR ?? 9),
+  /** backup.sh가 남기는 상태 파일 — DB 데이터 폴더 기준(스크립트와 자동 정렬) */
+  backupStatusPath: path.resolve(
+    env.BACKUP_STATUS_PATH ??
+      path.join(path.dirname(path.resolve(env.DATABASE_PATH ?? './data/app.db')), 'backup-status.json'),
+  ),
   /** 같은 이름 덮어쓰기 시 이전 버전 보관소 */
   versionsDir: path.resolve(
     env.VERSIONS_DIR ?? path.join(env.STORAGE_ROOT ?? './data/storage', '.versions'),

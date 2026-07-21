@@ -1,6 +1,7 @@
+import { and, eq, gte, lte } from 'drizzle-orm'
 import { config } from './config'
 import { db } from './db'
-import { subscriptions } from './db/schema'
+import { activityLog, settings, subscriptions, users } from './db/schema'
 
 /**
  * Discord 알림 2종 — 실패해도 본 작업을 막지 않는다.
@@ -106,6 +107,34 @@ function notifySubscribers(
   }
 }
 
+/** 접근 요청 생성 시 채널(웹훅) 알림 — admin이 처리하도록 */
+export function notifyAccessRequest(
+  requesterName: string,
+  relPath: string,
+  permission: 'read' | 'write',
+): void {
+  post(
+    `🔑 **@${requesterName}** 님이 \`${relPath}\` **${
+      permission === 'write' ? '수정' : '읽기'
+    }** 권한을 요청했습니다 — 관리 → 접근 요청에서 처리하세요.`,
+  )
+}
+
+/** 접근 요청 처리 결과를 요청자에게 DM */
+export function dmAccessResolved(
+  userId: string,
+  relPath: string,
+  approved: boolean,
+  note?: string | null,
+): void {
+  void sendDm(
+    userId,
+    approved
+      ? `✅ 접근 요청 승인 — \`${relPath}\` 권한이 부여되었습니다.${note ? `\n> ${note}` : ''}`
+      : `❌ 접근 요청 반려 — \`${relPath}\`.${note ? `\n> ${note}` : ''}`,
+  )
+}
+
 /** 디스크 여유 공간 경고 — 하루 1건 */
 export function notifyDiskWarning(freePct: number): void {
   const key = 'disk-warning'
@@ -113,4 +142,84 @@ export function notifyDiskWarning(freePct: number): void {
   if ((lastSent.get(key) ?? 0) > now - 24 * 60 * 60 * 1000) return
   lastSent.set(key, now)
   post(`⚠ **스토리지 여유 공간 ${freePct.toFixed(1)}%** — 정리가 필요합니다.`)
+}
+
+// ─── 주간 활동 다이제스트 ───────────────────────────────────
+
+export interface DigestRow {
+  action: string
+  actorName: string
+}
+
+/** 활동 로그 → 요약 텍스트. 활동이 없으면 null (전송 생략) */
+export function buildDigestText(rows: DigestRow[], sinceMs: number, nowMs: number): string | null {
+  if (rows.length === 0) return null
+  const kept = new Set(['upload', 'trash', 'restore', 'rename', 'move', 'copy', 'mkdir'])
+  let uploads = 0
+  let deletes = 0
+  let others = 0
+  const byActor = new Map<string, number>()
+  for (const r of rows) {
+    if (r.action === 'upload') uploads++
+    else if (r.action === 'trash') deletes++
+    else if (kept.has(r.action)) others++
+    else continue
+    byActor.set(r.actorName, (byActor.get(r.actorName) ?? 0) + 1)
+  }
+  if (uploads + deletes + others === 0) return null
+  const top = [...byActor.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, n]) => `@${name} (${n})`)
+  const days = Math.max(1, Math.round((nowMs - sinceMs) / (24 * 60 * 60 * 1000)))
+  return [
+    `📊 **지난 ${days}일 활동 요약**`,
+    `• 업로드 ${uploads} · 삭제 ${deletes} · 기타 변경 ${others}`,
+    top.length ? `• 활동 상위: ${top.join(', ')}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+}
+
+const DIGEST_KEY = 'lastDigestAt'
+
+function lastDigestAt(): number {
+  const row = db.select().from(settings).where(eq(settings.key, DIGEST_KEY)).get()
+  return row ? Number(row.value) || 0 : 0
+}
+
+function markDigestSent(now: number): void {
+  db.insert(settings)
+    .values({ key: DIGEST_KEY, value: String(now) })
+    .onConflictDoUpdate({ target: settings.key, set: { value: String(now) } })
+    .run()
+}
+
+/**
+ * 스케줄러가 주기적으로 호출 — 지금이 예약 요일·시각이고 지난 6일간 안 보냈으면 다이제스트 전송.
+ * @returns 전송했으면 true
+ */
+export async function maybeSendDigest(now = new Date()): Promise<boolean> {
+  if (!config.webhookUrl || config.digestDay < 0) return false
+  if (now.getDay() !== config.digestDay || now.getHours() < config.digestHour) return false
+  const nowMs = now.getTime()
+  // 지난 전송이 6일 이내면 이번 주 몫은 이미 보냈다
+  if (nowMs - lastDigestAt() < 6 * 24 * 60 * 60 * 1000) return false
+
+  const sinceMs = nowMs - 7 * 24 * 60 * 60 * 1000
+  const rows = db
+    .select({ action: activityLog.action, actorName: users.username })
+    .from(activityLog)
+    .leftJoin(users, eq(users.id, activityLog.actorId))
+    .where(and(gte(activityLog.createdAt, sinceMs), lte(activityLog.createdAt, nowMs)))
+    .all()
+  const text = buildDigestText(
+    rows.map((r) => ({ action: r.action, actorName: r.actorName ?? '알수없음' })),
+    sinceMs,
+    nowMs,
+  )
+  markDigestSent(nowMs) // 활동이 없어도 이번 주는 처리 완료로 표시(빈 주 반복 조회 방지)
+  if (!text) return false
+  post(text)
+  return true
 }

@@ -9,11 +9,12 @@ import fastifyStatic from '@fastify/static'
 import { ROLE_CACHE_TTL_MS, ROLE_STALE_MAX_MS, SESSION_COOKIE } from '@fs/shared'
 import { config } from './config'
 import { fetchMemberRoles } from './auth/discord'
-import { deleteSession, getSessionWithUser, updateSessionRoles } from './auth/session'
+import { deleteSession, getSessionWithUser, touchSession, updateSessionRoles } from './auth/session'
 import { PathError } from './fs/safe-path'
 import { fullScan } from './fs/indexer'
 import { purgeTrash } from './fs/purge'
-import { notifyDiskWarning } from './notify'
+import { maybeSendDigest, notifyDiskWarning } from './notify'
+import accessRoutes from './routes/access'
 import adminRoutes, { diskUsage } from './routes/admin'
 import authRoutes from './routes/auth'
 import eventsRoutes from './routes/events'
@@ -23,6 +24,7 @@ import healthRoutes from './routes/health'
 import meRoutes from './routes/me'
 import metaRoutes from './routes/meta'
 import pinsRoutes from './routes/pins'
+import sessionsRoutes from './routes/sessions'
 import subscriptionsRoutes from './routes/subscriptions'
 import shareRoutes from './routes/share'
 import thumbnailRoutes from './routes/thumbnail'
@@ -71,6 +73,7 @@ for (const leftover of fs.readdirSync(config.tmpDir)) {
 }
 
 app.decorateRequest('user', null)
+app.decorateRequest('sessionId', null)
 
 // ── 인증 가드: /api/auth/*, /api/health 를 제외한 모든 /api/* ──
 app.addHook('onRequest', async (req, reply) => {
@@ -111,6 +114,8 @@ app.addHook('onRequest', async (req, reply) => {
     }
   }
 
+  req.sessionId = sid
+  touchSession(sid, found.session.lastSeenAt)
   req.user = {
     id: found.user.id,
     username: found.user.username,
@@ -138,6 +143,8 @@ await app.register(versionsRoutes)
 await app.register(shareRoutes)
 await app.register(pinsRoutes)
 await app.register(subscriptionsRoutes)
+await app.register(accessRoutes)
+await app.register(sessionsRoutes)
 await app.register(adminRoutes)
 await app.register(eventsRoutes)
 await app.register(healthRoutes)
@@ -197,3 +204,14 @@ const dailyTimer = setInterval(() => {
   dailyMaintenance().catch((err) => app.log.warn({ err }, '일일 유지보수 실패'))
 }, 24 * 60 * 60 * 1000)
 dailyTimer.unref()
+
+// 주간 활동 다이제스트 — 시간별로 예약 시각 도달 여부를 확인 (웹훅·요일 설정 시에만 전송)
+if (config.webhookUrl && config.digestDay >= 0) {
+  const digestTick = () =>
+    maybeSendDigest()
+      .then((sent) => sent && app.log.info('주간 활동 다이제스트 전송'))
+      .catch((err) => app.log.warn({ err }, '다이제스트 전송 실패'))
+  digestTick()
+  const digestTimer = setInterval(digestTick, 60 * 60 * 1000)
+  digestTimer.unref()
+}

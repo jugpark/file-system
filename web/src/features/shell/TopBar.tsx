@@ -174,6 +174,9 @@ function ProfileMenu({ me }: { me: MeResponse }) {
           <button role="menuitem" onClick={() => go('/trash')}>
             <IconTrash className="ci" />휴지통
           </button>
+          <button role="menuitem" onClick={() => go('/sessions')}>
+            <IconLockOpen className="ci" />세션 관리
+          </button>
           {me.isAdmin && (
             <button role="menuitem" onClick={() => go('/admin')}>
               <IconLockOpen className="ci" />관리

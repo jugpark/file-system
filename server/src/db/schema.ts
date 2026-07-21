@@ -17,6 +17,10 @@ export const sessions = sqliteTable('sessions', {
   rolesFetchedAt: integer('roles_fetched_at').notNull(),
   expiresAt: integer('expires_at').notNull(),
   createdAt: integer('created_at').notNull(),
+  /** 세션 관리 표시용 — 로그인 기기의 User-Agent */
+  userAgent: text('user_agent'),
+  /** 마지막 요청 시각 (스로틀 갱신) */
+  lastSeenAt: integer('last_seen_at'),
 })
 
 export const fileMeta = sqliteTable('file_meta', {
@@ -64,6 +68,19 @@ export const subscriptions = sqliteTable('subscriptions', {
   userId: text('user_id').notNull(),
   path: text('path').notNull(),
   createdAt: integer('created_at').notNull(),
+})
+
+/** 접근 요청 — 못 보는/읽기전용 폴더에 대해 유저가 권한을 신청, admin이 처리 */
+export const accessRequests = sqliteTable('access_requests', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: text('user_id').notNull(),
+  path: text('path').notNull(),
+  permission: text('permission', { enum: ['read', 'write'] }).notNull(),
+  note: text('note'),
+  status: text('status', { enum: ['pending', 'approved', 'denied'] }).notNull().default('pending'),
+  createdAt: integer('created_at').notNull(),
+  resolvedBy: text('resolved_by'),
+  resolvedAt: integer('resolved_at'),
 })
 
 /** 런타임 서버 설정 (storageRoot 등) — env보다 우선 */

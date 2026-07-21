@@ -6,6 +6,7 @@ import { inArray } from 'drizzle-orm'
 import type {
   AclRuleDto,
   AdminActivityResponse,
+  BackupStatusResponse,
   ContentIndexStatusResponse,
   PurgeTrashBody,
   PurgeTrashResponse,
@@ -26,6 +27,7 @@ import {
 import { fullScan } from '../fs/indexer'
 import { recordActivity } from '../fs/meta'
 import { toRelPath } from '../fs/safe-path'
+import { registerAdminAccessRoutes } from './access'
 import { saveStorageRoot } from '../settings'
 import { errorBody } from '../types'
 import { restartWatcher } from '../watcher'
@@ -169,6 +171,27 @@ export default async function adminRoutes(app: FastifyInstance) {
       )
       .all() as Array<{ top: string; bytes: number }>
     return { ...disk, folders: rows.map((r) => ({ path: r.top, bytes: r.bytes })) }
+  })
+
+  // 접근 요청 처리 큐 (admin 전용) — 라우트 정의는 access.ts에 위임
+  registerAdminAccessRoutes(app)
+
+  /** 백업 상태 — backup.sh가 남긴 마지막 실행 결과 파일 */
+  app.get('/api/admin/backup-status', async (): Promise<BackupStatusResponse> => {
+    try {
+      const raw = await fsp.readFile(config.backupStatusPath, 'utf8')
+      const j = JSON.parse(raw) as Partial<BackupStatusResponse>
+      return {
+        known: true,
+        ok: !!j.ok,
+        at: typeof j.at === 'number' ? j.at : undefined,
+        size: typeof j.size === 'string' ? j.size : undefined,
+        dest: typeof j.dest === 'string' ? j.dest : undefined,
+        error: typeof j.error === 'string' ? j.error : undefined,
+      }
+    } catch {
+      return { known: false }
+    }
   })
 
   /** 내용 검색 인덱스 상태 — 카운트/큐/실패 목록 */

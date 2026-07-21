@@ -4,6 +4,8 @@ import { config } from '../config'
 import * as schema from './schema'
 
 const sqlite = new Database(config.databasePath)
+// 잠긴 DB를 만나면 즉시 실패하지 말고 최대 5초 대기 (백업 .backup·동시 접근 등과의 경합 완화)
+sqlite.pragma('busy_timeout = 5000')
 sqlite.pragma('journal_mode = WAL')
 sqlite.pragma('foreign_keys = ON')
 
@@ -58,6 +60,18 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   created_at INTEGER NOT NULL,
   PRIMARY KEY (user_id, path)
 );
+CREATE TABLE IF NOT EXISTS access_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  path TEXT NOT NULL,
+  permission TEXT NOT NULL CHECK (permission IN ('read','write')),
+  note TEXT,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','denied')),
+  created_at INTEGER NOT NULL,
+  resolved_by TEXT,
+  resolved_at INTEGER
+);
+CREATE INDEX IF NOT EXISTS idx_access_requests_status ON access_requests(status);
 CREATE TABLE IF NOT EXISTS pinned_paths (
   user_id TEXT NOT NULL,
   path TEXT NOT NULL,
@@ -143,6 +157,10 @@ addColumnIfMissing('trash', 'size', 'size INTEGER')
 
 // 마이그레이션: share_links.kind (2026-07-20 파일 요청 링크)
 addColumnIfMissing('share_links', 'kind', `kind TEXT NOT NULL DEFAULT 'download'`)
+
+// 마이그레이션: sessions.user_agent·last_seen_at (2026-07-21 세션 관리)
+addColumnIfMissing('sessions', 'user_agent', 'user_agent TEXT')
+addColumnIfMissing('sessions', 'last_seen_at', 'last_seen_at INTEGER')
 
 export const db = drizzle(sqlite, { schema })
 export { sqlite }

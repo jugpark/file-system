@@ -38,7 +38,7 @@ export default async function authRoutes(app: FastifyInstance) {
       const dev = config.devUser
       upsertUser({ id: dev.id, username: dev.username, avatarUrl: null })
       ensureHomeDir(dev.id)
-      setSessionCookie(reply, createSession(dev.id, dev.roles))
+      setSessionCookie(reply, createSession(dev.id, dev.roles, req.headers['user-agent']))
       return reply.redirect('/')
     }
     const state = crypto.randomBytes(16).toString('hex')
@@ -68,7 +68,7 @@ export default async function authRoutes(app: FastifyInstance) {
       if (roles === null) return reply.redirect('/login?error=not_member')
       upsertUser(duser)
       ensureHomeDir(duser.id)
-      setSessionCookie(reply, createSession(duser.id, roles))
+      setSessionCookie(reply, createSession(duser.id, roles, req.headers['user-agent']))
       return reply.redirect('/')
     } catch (err) {
       req.log.error({ err }, 'OAuth callback failed')

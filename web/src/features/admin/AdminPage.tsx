@@ -2,8 +2,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
 import type {
+  AccessRequestListResponse,
   AclRuleDto,
   AdminActivityResponse,
+  BackupStatusResponse,
   ContentIndexStatusResponse,
   RoleDto,
   SettingsResponse,
@@ -38,9 +40,11 @@ export default function AdminPage() {
       }
     >
       <section className="main">
+        <AccessRequestsSection />
         <StorageSection />
         <AclSection />
         <UsageSection />
+        <BackupSection />
         <ContentIndexSection />
         <AuditSection />
       </section>
@@ -230,6 +234,97 @@ function UsageSection() {
           ))}
         </tbody>
       </table>
+    </div>
+  )
+}
+
+/** 접근 요청 처리 큐 — 대기 요청 승인/반려 (실제 ACL은 아래 규칙 표에서 추가) */
+function AccessRequestsSection() {
+  const queryClient = useQueryClient()
+  const { showNotice } = useOverlays()
+  const [busy, setBusy] = useState(false)
+  const q = useQuery({
+    queryKey: ['admin-access-requests'],
+    queryFn: () => api<AccessRequestListResponse>('/api/admin/access-requests'),
+    refetchInterval: 60_000,
+  })
+  const pending = (q.data?.requests ?? []).filter((r) => r.status === 'pending')
+
+  const resolve = async (id: number, approve: boolean) => {
+    setBusy(true)
+    try {
+      await apiJson(`/api/admin/access-requests/${id}/resolve`, 'POST', { approve })
+      showNotice(approve ? '승인 처리했습니다 — 아래 ACL 규칙에 권한을 추가하세요' : '반려했습니다')
+      queryClient.invalidateQueries({ queryKey: ['admin-access-requests'] })
+    } catch (err) {
+      showNotice(err instanceof Error ? err.message : '처리 실패')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // 대기 요청이 없으면 섹션 자체를 숨겨 관리 화면을 어지럽히지 않는다
+  if (pending.length === 0) return null
+
+  return (
+    <div className="admin-section">
+      <h3 className="page-h">접근 요청 <span className="tag-perm ed mini">{pending.length}</span></h3>
+      <p style={{ color: 'var(--slate)', fontSize: '.85rem', margin: '0 0 10px' }}>
+        승인해도 자동 부여되지 않습니다(권한은 role 기반) — 승인 후 아래 <b>폴더 권한(ACL)</b>에서
+        해당 폴더·role에 규칙을 추가하세요.
+      </p>
+      <table className="lv">
+        <thead>
+          <tr><th>요청자</th><th>폴더</th><th>권한</th><th className="hidem">사유</th><th></th></tr>
+        </thead>
+        <tbody>
+          {pending.map((r) => (
+            <tr key={r.id}>
+              <td><span className="who"><i />@{r.requesterName}</span></td>
+              <td className="nm mono">{r.path}</td>
+              <td>
+                <span className={'tag-perm ' + (r.permission === 'write' ? 'ed' : 'rd')}>
+                  {r.permission === 'write' ? '수정' : '읽기'}
+                </span>
+              </td>
+              <td className="hidem">{r.note ?? '—'}</td>
+              <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                <button className="btn primary sm" disabled={busy} onClick={() => resolve(r.id, true)}>승인</button>{' '}
+                <button className="btn ghost sm" disabled={busy} onClick={() => resolve(r.id, false)}>반려</button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+/** 백업 상태 — backup.sh가 남긴 마지막 실행 결과 */
+function BackupSection() {
+  const q = useQuery({
+    queryKey: ['admin-backup-status'],
+    queryFn: () => api<BackupStatusResponse>('/api/admin/backup-status'),
+  })
+  if (!q.data) return null
+  const d = q.data
+  return (
+    <div className="admin-section">
+      <h3 className="page-h">백업 상태</h3>
+      {!d.known ? (
+        <p style={{ color: 'var(--slate)', fontSize: '.85rem', margin: 0 }}>
+          아직 백업 기록이 없습니다 — <span className="mono">deploy/backup.sh</span>를 cron에 등록하세요.
+        </p>
+      ) : (
+        <p className="tight" style={{ fontSize: '.85rem', margin: 0, color: 'var(--slate)' }}>
+          <span className={'tag-perm ' + (d.ok ? 'rd' : 'ed')} style={{ marginRight: 8 }}>
+            {d.ok ? '성공' : '실패'}
+          </span>
+          마지막 백업 {d.at ? formatMtime(d.at) : '—'}
+          {d.ok && d.size ? ` · 크기 ${d.size}` : ''}
+          {!d.ok && d.error ? ` · ${d.error}` : ''}
+        </p>
+      )}
     </div>
   )
 }
