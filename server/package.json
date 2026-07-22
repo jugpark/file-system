@@ -7,6 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "start": "NODE_ENV=production tsx src/index.ts",
     "test": "vitest run",
+    "test:e2e": "node test/e2e/run.mjs",
     "typecheck": "tsc --noEmit",
     "seed:acl": "tsx scripts/seed-acl.ts",
     "seed:dev": "tsx scripts/seed-dev.ts"

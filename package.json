@@ -7,6 +7,7 @@
     "build": "pnpm --filter @fs/web build",
     "start": "pnpm --filter @fs/server start",
     "test": "pnpm --filter @fs/server test",
+    "test:e2e": "pnpm --filter @fs/server test:e2e",
     "typecheck": "pnpm -r typecheck",
     "seed:acl": "pnpm --filter @fs/server seed:acl",
     "seed:dev": "pnpm --filter @fs/server seed:dev"

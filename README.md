@@ -49,7 +49,8 @@ Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callb
 | `pnpm dev` | 개발 서버 (server + web, /api는 프록시) |
 | `pnpm build` | web 빌드 → `server/public/` |
 | `pnpm start` | 프로덕션 단일 서버 (:3000) |
-| `pnpm test` | 서버 단위 테스트 (경로 보안·ACL) |
+| `pnpm test` | 서버 단위 테스트 (vitest) |
+| `pnpm test:e2e` | 통합 E2E — 실서버 기동 후 전 기능·정합성 검증 (아래 참고) |
 | `pnpm typecheck` | 전 패키지 타입 검사 |
 | `pnpm seed:acl` | `server/src/db/acl-seed.ts`의 ACL 적용 |
 | `pnpm seed:dev` | 샘플 스토리지 + ACL 시드 |
@@ -59,6 +60,22 @@ Developer Portal에서 앱 생성 → OAuth2 redirect `{BASE_URL}/api/auth/callb
 - ACL은 `server/src/db/acl-seed.ts`에서 코드로 관리 → `pnpm seed:acl` (관리 UI는 v2)
 - 가장 깊은 path prefix가 승리, 같은 깊이면 write > read, 매칭 없으면 숨김
 - `/home/{discordUserId}`는 본인 자동 write, 남의 home은 ACL로도 불가
+
+## 통합 E2E 테스트 (`pnpm test:e2e`)
+
+`server/test/e2e/`는 **실제 서버를 임시 데이터(OS temp)로 띄우고 실 HTTP로 전 기능을
+통과**시키는 통합 테스트다. 단위 테스트(vitest)가 개별 함수를 검증한다면, 이쪽은
+라우트·권한·인덱스·로그가 서로 어긋나지 않는지 **정합성**을 본다.
+
+- **다중 신원**: 서명된 세션을 DB에 직접 심어 admin·editor·guest 세 유저를 만들고,
+  단일 유저로는 못 보는 권한 경계·사용자 간 격리를 실제로 확인한다.
+- **커버리지**: mkdir/업로드/이동/복사/이름변경, 권한 강제(전 변경 라우트), 읽기전용·홈
+  격리, 휴지통 왕복·크기·영구삭제, 버전 보관, 공유/파일요청 링크, 검색(FTS·필터·권한),
+  구독, 접근 요청, 세션 관리, 관리 대시보드, 경로 보안.
+- **정합성 불변식**: fs_index ↔ 디스크(누락·고아 0), content_index ⊆ fs_index,
+  휴지통 원장 ↔ `.trash` 실체, `.tmp` 잔여물 0, activity_log 13종 액션 기록 완전성.
+- 서버는 `node --import tsx`로 자체 기동(크로스플랫폼), 끝나면 프로세스·임시데이터 정리.
+  네이티브 모듈이 빌드된 상태여야 하므로 `pnpm install` 후 실행.
 
 ## 마일스톤 현황
 
